@@ -44,3 +44,34 @@ jobs:
           gh release create apk-latest pocket-penguin-$VER.apk --target "$GITHUB_SHA" --prerelease \
             --title "Pocket Penguin $VER (最新ビルド)" \
             --notes "ブランチ ${GITHUB_REF_NAME} / コミット ${GITHUB_SHA::7} からの自動ビルドです。下の .apk をタップしてダウンロードしてください。"
+
+  # Install the APK on emulators to catch "app not installed" errors before trying on a phone.
+  install-test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        api: [35, 36]
+    steps:
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules && sudo udevadm trigger --name-match=kvm
+      - uses: actions/download-artifact@v4
+        with:
+          name: pocket-penguin-apk
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: |
+            adb install -r pocket-penguin-*.apk 2>&1 | tee install.log
+            adb shell pm list packages | grep pocketpenguin || true
+            adb logcat -d | grep -iE "PackageManager|pocketpenguin|INSTALL_" | tail -60 || true
+            adb shell am start -W -n com.pocketpenguin/.MainActivity || true
+            sleep 5
+            adb logcat -d -b crash | tail -60 || true
+            grep -q Success install.log
