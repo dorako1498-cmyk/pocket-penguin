@@ -18,6 +18,7 @@ final class Brain {
     // ---- world
     int w, h; float u = 1f, x, groundY, baseY;   // groundY = feet position right now (moves up when it perches on the cushion / bed)
     int perch;                                   // 0 floor, 1 on the cushion, 2 lying in the bed
+    boolean front;                               // stepped forward to the bowls (which stand closer to the viewer)
     float petUntil = -1f;
     boolean riding; float rideX, rideY, rideX0, rideY0, rideB;   // riding on the buddy's back (positions come from Buddy)                        // tap-petting: each tap on the head keeps it purring for a moment
     int face = 1;
@@ -227,18 +228,33 @@ final class Brain {
     }
 
     /** Sitting / sleeping near the cushion or the bed puts the penguin ON it; walking away puts it back on the floor. */
+    private boolean bowlSeq() {
+        switch (seqId) {
+            case Seqs.EAT_MEAL: case Seqs.DRINK_WATER: case Seqs.BEG_FOOD: case Seqs.BEG_WATER: case Seqs.R_FED: case Seqs.R_WATERED: case Seqs.SNACK: return true;
+            default: return false;
+        }
+    }
+
     private void updateFeet(float dt) {
         final boolean settle = state == State.SIT || state == State.SLEEP || state == State.SLEEPY || state == State.NOD_OFF
                 || state == State.YAWN || state == State.WAKE_UP || state == State.REST_WHILE_CHARGING;
         final float dc = Math.abs(x - room.cushionX), db = Math.abs(x - room.bedX);
         if (state.isMove() || offscreenState() || (dc > w * .11f && db > w * .13f)) perch = 0;       // left the furniture
-        else if (perch == 0 && settle) { if (dc < w * .09f) perch = 1; else if (db < w * .10f) perch = 2; }
-        final float target = perch == 1 ? room.groundY - h * .004f : perch == 2 ? room.groundY + h * .02f : baseY;
-        groundY += (target - groundY) * Math.min(1f, dt * 8f);
+        else if (perch == 0 && settle && !front) { if (dc < w * .09f) perch = 1; else if (db < w * .10f) perch = 2; }
+        // the bowls stand in front: on the way to them the penguin also walks towards the viewer, and back again when it leaves
+        final float nearBowl = Math.min(Math.abs(x - room.goalX(Seqs.G_FOOD) * w), Math.abs(x - room.goalX(Seqs.G_WATER) * w));
+        if (perch == 0 && !riding && bowlSeq() && nearBowl < w * .12f) front = true;
+        else if (front && (state.isMove() || offscreenState() || perch != 0) && !(bowlSeq() && nearBowl < w * .12f)) front = false;
+        final float frontY = room.bowlY - h * .012f;
+        final float target = perch == 1 ? room.groundY - h * .004f : perch == 2 ? room.groundY + h * .02f : front ? frontY : baseY;
+        groundY += (target - groundY) * Math.min(1f, dt * (front || Math.abs(groundY - baseY) > h * .01f ? 4.5f : 8f));
     }
 
     /** True while the penguin is lying in the bed (the engine then draws the bed's front wall over it). */
     boolean inBed() { return perch == 2 && groundY > room.groundY + h * .008f; }
+
+    /** Size factor for how near the viewer the penguin stands (1 on the normal floor line, a bit bigger in front, smaller at the back). */
+    float depth() { return 1f + (groundY - baseY) / h * 1.6f; }
 
     private void finish(float dt) {
         in.s = state; in.t = t; in.dur = dur; in.face = face; in.gaitPh = gaitPh; in.gaitAmp = gaitAmp;

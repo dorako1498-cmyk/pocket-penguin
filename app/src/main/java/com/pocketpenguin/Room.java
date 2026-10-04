@@ -56,6 +56,8 @@ final class Room {
 
     // ---- geometry
     int w, h; float ballX = -1f;      // the toy ball (moved by Decor)
+    static final float FOOD_X = .40f, WATER_X = .60f;   // the two bowls stand in the foreground (closer to the viewer than the pets)
+    float bowlY;                                        // floor line of the bowls (below / in front of the pets' feet)
     float winL, winT, winR, winB, groundY, wallBottom, lampX, lampY, clockX, clockY, clockR, chargerX, chargerY, bedX, cushionX;
     private final RectF rfA = new RectF(), rfB = new RectF(), rfC = new RectF();
     private Bitmap furniture;
@@ -92,6 +94,7 @@ final class Room {
         w = ww; h = hh;
         winL = w * .10f; winR = w * .52f; winT = h * .115f; winB = h * .345f;
         groundY = h * (.60f + .02f * Math.max(0, Math.min(10, floorStep))); wallBottom = groundY - h * .11f;
+        bowlY = Math.min(h * .87f, groundY + h * .095f);
         lampX = w * .935f; lampY = groundY - h * .34f; bedX = w * .80f; cushionX = w * .33f;
         clockX = w * .76f; clockY = h * .135f; clockR = w * .052f;
         chargerX = w * .18f; chargerY = groundY;
@@ -113,8 +116,8 @@ final class Room {
         switch (goal) {
             case Seqs.G_WINDOW: return .31f;
             case Seqs.G_BED: return .80f;
-            case Seqs.G_FOOD: return .52f;
-            case Seqs.G_WATER: return .62f;
+            case Seqs.G_FOOD: return FOOD_X;
+            case Seqs.G_WATER: return WATER_X;
             case Seqs.G_CUSHION: return .33f;
             case Seqs.G_CHARGER: return .19f;
             case Seqs.G_BALL: return w > 0 ? ballX / w : .445f;
@@ -221,12 +224,27 @@ final class Room {
         for (float x = w * .05f; x < w; x += w * .125f) c.drawRect(x, 0, x + w * .05f, wallBottom, p);      // soft stripes
         // wall shadow near ceiling
         p.setColor(0x10000000); c.drawRect(0, 0, w, h * .012f, p);
-        // floor
-        p.setColor(0xFFDDAE7C); c.drawRect(0, wallBottom, w, h, p);
-        p.setColor(0x22A06B3C); p.setStrokeWidth(Math.max(2f, w * .003f));
-        final float pl = (h - wallBottom) / 6f;
-        for (int i = 1; i < 6; i++) c.drawLine(0, wallBottom + pl * i, w, wallBottom + pl * i, p);
-        for (int i = 0; i < 6; i++) for (float x = (i % 2) * w * .17f; x < w; x += w * .34f) c.drawLine(x, wallBottom + pl * i, x, wallBottom + pl * (i + 1), p);
+        // floor in soft perspective: darker at the back, boards run towards a vanishing point above the room,
+        // cross seams get wider towards the viewer
+        band(c, 0xFFCF9C69, 0xFFE6BB8C, 0, wallBottom, w, h);
+        p.setColor(0x26A06B3C); p.setStrokeWidth(Math.max(2f, w * .003f));
+        final float vpx = w * .5f, vpy = wallBottom - h * .55f, spread = (h - vpy) / (wallBottom - vpy);
+        for (int i = -7; i <= 7; i++) { final float xb = vpx + i * w * .085f; c.drawLine(xb, wallBottom, vpx + (xb - vpx) * spread, h, p); }
+        final int rows = 7; float prevY = wallBottom;
+        for (int j = 1; j <= rows; j++) {
+            final float yj = wallBottom + (h - wallBottom) * (float) Math.pow(j / (float) rows, 1.45f);
+            p.setColor(0x1FA06B3C); c.drawLine(0, yj, w, yj, p);
+            // staggered board ends between this seam and the previous one
+            final float kk = ((prevY + yj) * .5f - vpy) / (wallBottom - vpy);
+            for (int i = -7; i <= 7; i += 2) { final float xb = vpx + (i + (j % 2)) * w * .085f * kk + w * .0425f * kk; c.drawLine(xb, prevY, xb, yj, p); }
+            prevY = yj;
+        }
+        // contact shadow along the wall and a soft darkening towards the screen edges (gives the room some depth)
+        q.setShader(new android.graphics.LinearGradient(0, wallBottom, 0, wallBottom + h * .05f, 0x30000000, 0x00000000, Shader.TileMode.CLAMP));
+        c.drawRect(0, wallBottom, w, wallBottom + h * .05f, q);
+        q.setShader(new android.graphics.LinearGradient(0, 0, w * .12f, 0, 0x22000000, 0x00000000, Shader.TileMode.CLAMP)); c.drawRect(0, wallBottom, w * .12f, h, q);
+        q.setShader(new android.graphics.LinearGradient(w, 0, w * .88f, 0, 0x22000000, 0x00000000, Shader.TileMode.CLAMP)); c.drawRect(w * .88f, wallBottom, w, h, q);
+        q.setShader(null);
         // baseboard
         p.setColor(0xFFFFF7EA); c.drawRect(0, wallBottom - h * .014f, w, wallBottom + h * .004f, p);
         p.setColor(0x22000000); c.drawRect(0, wallBottom + h * .004f, w, wallBottom + h * .012f, p);
@@ -294,8 +312,7 @@ final class Room {
         ov(c, cu - w * .1f, groundY - h * .034f, cu + w * .1f, groundY + h * .012f, 0xFFFFB6CB);
         p.setColor(0xFFE4809C); c.drawCircle(cu, groundY - h * .01f, w * .008f, p);
 
-        // ---- bowls
-        bowl(c, w * .52f, 0xFFE8604F, 0xFFC4452F, true); bowl(c, w * .62f, 0xFF5FA8E8, 0xFF3F87C8, false);
+        // (the bowls are drawn in front of the pets every frame: Decor.drawBowls)
 
         // ---- pet bed (right)
         final float bd = bedX;
@@ -316,14 +333,6 @@ final class Room {
         rr(c, w * .067f, h * .2275f, w * .143f, h * .2845f, w * .005f, 0xFFD6EEF7);
         p.setColor(0xFF6F7C95); c.drawCircle(w * .105f, h * .2605f, w * .0105f, p);
         for (int i = -1; i <= 1; i++) c.drawCircle(w * .105f + i * w * .0135f, h * .2465f, w * .0042f, p);
-    }
-
-    private void bowl(Canvas c, float x, int col, int dark, boolean food) {
-        final float bw = w * .055f, y = groundY + h * .004f;
-        ov(c, x - bw * 1.15f, y + h * .006f, x + bw * 1.15f, y + h * .026f, 0x26000000);
-        ov(c, x - bw, y - h * .018f, x + bw, y + h * .014f, dark);
-        ov(c, x - bw * .92f, y - h * .02f, x + bw * .92f, y + h * .006f, col);
-        ov(c, x - bw * .78f, y - h * .021f, x + bw * .78f, y - h * .003f, dark);   // empty inside; Decor fills it (care level)
     }
 
     // ================================================================================== per-frame drawing

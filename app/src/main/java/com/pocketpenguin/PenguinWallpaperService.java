@@ -213,10 +213,12 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (c == null) return;
                 room.drawBack(c, hour, minute);
                 decor.draw(c, Math.min(1f, room.cur.lamp));
-                final boolean bFront = buddyOn && buddy.inFront(brain.sleeping());
+                // depth order: whoever stands further forward is drawn later (the penguin steps in front of Jinbei at the bowls)
+                final boolean bFront = buddyOn && buddy.inFront(brain.sleeping()) && !(brain.groundY > buddy.baseY + h * .004f && !brain.riding);
                 if (buddyOn && !bFront) buddy.draw(c, bart);
-                if (brain.state != State.OFF_SCREEN && art != null) { rig.draw(c, art, brain.x, brain.groundY, brain.u, brain.face, 255, 0f); if (brain.inBed()) room.drawBedFront(c); }
+                if (brain.state != State.OFF_SCREEN && art != null) { rig.draw(c, art, brain.x, brain.groundY, brain.u * brain.depth(), brain.face, 255, 0f); if (brain.inBed()) room.drawBedFront(c); }
                 if (bFront) buddy.draw(c, bart);
+                decor.drawBowls(c);
                 fx.draw(c);
                 room.drawFront(c);
                 if (talkOn) talk.draw(c, headX(), headY() - 60f * brain.u, buddy.headX(), buddy.headY());
@@ -225,8 +227,8 @@ public class PenguinWallpaperService extends WallpaperService {
         }
 
         // ================================================================== particles
-        float headX() { return brain.x + (rig.bx.p + rig.hx.p) * brain.u; }
-        float headY() { return brain.groundY + ((60f - Rig.GROUND) * rig.sy.p + rig.by.p + rig.hy.p) * brain.u; }
+        float headX() { return brain.x + (rig.bx.p + rig.hx.p) * brain.u * brain.depth(); }
+        float headY() { return brain.groundY + ((60f - Rig.GROUND) * rig.sy.p + rig.by.p + rig.hy.p) * brain.u * brain.depth(); }
         float feetY() { return brain.groundY; }
 
         void burst(int type, int n, float spread, float up, float life, float size) {
@@ -282,7 +284,7 @@ public class PenguinWallpaperService extends WallpaperService {
 
         // ================================================================== touch
         int hitZone(float fx0, float fy0) {
-            final float ax = 320f + (fx0 - brain.x) / brain.u, ay = Rig.GROUND + (fy0 - brain.groundY) / brain.u;
+            final float du = brain.u * brain.depth(), ax = 320f + (fx0 - brain.x) / du, ay = Rig.GROUND + (fy0 - brain.groundY) / du;
             final float dx = Math.abs(ax - 320f);
             if (ay > 20f && ay < 462f && dx < 285f) return Z_HEAD;
             if (ay >= 462f && ay < 800f && dx < 300f) return (dx < 190f && ay > 520f) ? Z_BELLY : Z_BODY;

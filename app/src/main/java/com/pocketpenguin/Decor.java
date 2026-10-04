@@ -49,9 +49,9 @@ final class Decor {
 
     /** Which bowl (1 food, 2 water) is at (x, y). Checked before the pets, so the bowls stay tappable when someone stands in front of them. */
     int bowlHit(float x, float y) {
-        if (y < room.groundY - h * .04f || y > room.groundY + h * .03f) return 0;
-        if (Math.abs(x - w * .52f) < w * .05f) return 1;
-        if (Math.abs(x - w * .62f) < w * .05f) return 2;
+        if (y < room.bowlY - h * .06f || y > room.bowlY + h * .035f) return 0;
+        if (Math.abs(x - w * Room.FOOD_X) < w * .09f) return 1;
+        if (Math.abs(x - w * Room.WATER_X) < w * .09f) return 2;
         return 0;
     }
 
@@ -101,17 +101,35 @@ final class Decor {
         if (has(FISH)) fish(c, w * .27f, back);
         if (has(PUMPKIN)) pumpkin(c, w * .72f, back, night);
         if (has(TREE)) tree(c, w * .72f, back);
-        bowls(c);
         ball(c);
     }
 
     private void oval(Canvas c, float l, float t, float r, float b, int col) { p.setColor(col); rf.set(l, t, r, b); c.drawOval(rf, p); }
     private void rr(Canvas c, float l, float t, float r, float b, float rad, int col) { p.setColor(col); rf.set(l, t, r, b); c.drawRoundRect(rf, rad, rad, p); }
 
-    private void bowls(Canvas c) {
-        final float y = room.groundY + h * .004f, bw = w * .055f;
-        // food
-        final float fx = w * .52f, lv = Math.max(0f, Math.min(1f, care.food));
+    /** The two bowls in the foreground (drawn after the pets, so whoever eats stands behind the bowl). Bigger = closer to the viewer. */
+    void drawBowls(Canvas c) {
+        p.setStyle(Paint.Style.FILL); p.setShader(null); p.setAlpha(255);
+        final float S = 1.4f, y0 = room.groundY + h * .004f;          // geometry below is drawn at the old floor line, then moved and scaled
+        c.save(); c.translate(0f, room.bowlY - y0);
+        for (int k = 1; k <= 2; k++) {
+            final float x = w * (k == 1 ? Room.FOOD_X : Room.WATER_X);
+            c.save(); c.scale(S, S, x, y0);
+            if (k == 1) { bowlBody(c, x, y0, 0xFFE8604F, 0xFFC4452F); food(c, x, y0); } else { bowlBody(c, x, y0, 0xFF5FA8E8, 0xFF3F87C8); water(c, x, y0); }
+            c.restore();
+        }
+        c.restore();
+    }
+    private void bowlBody(Canvas c, float x, float y, int col, int dark) {
+        final float bw = w * .055f;
+        oval(c, x - bw * 1.2f, y + h * .006f, x + bw * 1.2f, y + h * .028f, 0x30000000);           // shadow
+        oval(c, x - bw, y - h * .018f, x + bw, y + h * .014f, dark);                                // outer wall
+        oval(c, x - bw * .92f, y - h * .02f, x + bw * .92f, y + h * .006f, col);                    // rim
+        oval(c, x - bw * .78f, y - h * .021f, x + bw * .78f, y - h * .003f, dark);                  // inside (empty)
+    }
+
+    private void food(Canvas c, float fx, float y) {
+        final float bw = w * .055f, lv = Math.max(0f, Math.min(1f, care.food));
         if (lv > .04f) {
             final float top = y - h * .003f - (h * .004f + h * .02f * lv);
             oval(c, fx - bw * .7f, top, fx + bw * .7f, y - h * .003f, 0xFF8A5B38);
@@ -120,8 +138,9 @@ final class Decor {
             for (int i = 0; i < n; i++) { final float kx = fx - bw * .55f + (i * 37 % 11) / 10f * bw * 1.1f, ky = top + h * .003f + ((i * 13) % 5) * h * .0018f; c.drawCircle(kx, ky, w * .0082f, p); }
             p.setColor(0x55FFFFFF); c.drawCircle(fx - bw * .2f, top + h * .002f, w * .004f, p);
         }
-        // water
-        final float wx = w * .62f, wl = Math.max(0f, Math.min(1f, care.water));
+    }
+    private void water(Canvas c, float wx, float y) {
+        final float bw = w * .055f, wl = Math.max(0f, Math.min(1f, care.water));
         if (wl > .04f) {
             final float k = .45f + .3f * wl;
             oval(c, wx - bw * k, y - h * .019f + (1f - wl) * h * .008f, wx + bw * k, y - h * .004f, 0xFFAEDCF7);

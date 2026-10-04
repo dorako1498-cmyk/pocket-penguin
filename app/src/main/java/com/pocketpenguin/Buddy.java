@@ -314,8 +314,8 @@ final class Buddy {
         if (state != IDLE && state != LOOK) return;
         // hungry / thirsty: goes to the bowl by itself
         if (care != null && time > careCool && duo == D_NONE && hour < 23 && hour >= 6) {
-            if (care.bHungry() && !care.foodEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_EAT; goTo(w * .52f, true, 12f); return; }
-            if (care.bThirsty() && !care.waterEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_DRINK; goTo(w * .62f, true, 12f); return; }
+            if (care.bHungry() && !care.foodEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_EAT; goTo(w * Room.FOOD_X, true, 12f); return; }
+            if (care.bThirsty() && !care.waterEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_DRINK; goTo(w * Room.WATER_X, true, 12f); return; }
         }
         // wants to nap next to a sleeping penguin
         if (penSleeping && time > napCool) { napCool = time + 240f; duo = D_NAPGO; final float side = penX > w * .5f ? -1f : 1f; goTo(penX + side * w * .3f, false, 16f); return; }
@@ -385,8 +385,8 @@ final class Buddy {
     /** The user filled a bowl: come and eat / drink (if awake, hungry enough and not busy). */
     void onFilled(int kind) {
         if (asleep || riding() || duo != D_NONE || care == null) return;
-        if (kind == 1 && care.bFull < .85f) { duo = D_EAT; goTo(w * .52f, true, 12f); }
-        else if (kind == 2 && care.bHyd < .85f) { duo = D_DRINK; goTo(w * .62f, true, 12f); }
+        if (kind == 1 && care.bFull < .85f) { duo = D_EAT; goTo(w * Room.FOOD_X, true, 12f); }
+        else if (kind == 2 && care.bHyd < .85f) { duo = D_DRINK; goTo(w * Room.WATER_X, true, 12f); }
     }
 
     private boolean duoThink() {
