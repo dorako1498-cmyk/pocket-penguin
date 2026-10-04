@@ -163,7 +163,7 @@ final class Talk {
         c.drawPath(tail, fill);
         stroke.setAlpha((int) (255 * a)); c.drawLine(tx - ts * .45f, by, Math.max(left + ts * .5f, Math.min(left + bw - ts * .5f, ax)), by + gapY * .85f, stroke);
         c.drawLine(tx + ts * .45f, by, Math.max(left + ts * .5f, Math.min(left + bw - ts * .5f, ax)), by + gapY * .85f, stroke);
-        fill.setAlpha((int) (255 * a)); c.drawRect(tx - ts * .43f, by - stroke.sw * .6f, tx + ts * .43f, by + stroke.sw * .6f, fill);   // hides the bubble border under the tail
+        fill.setAlpha((int) (255 * a)); c.drawRect(tx - ts * .43f, by - stroke.getStrokeWidth() * .6f, tx + ts * .43f, by + stroke.getStrokeWidth() * .6f, fill);   // hides the bubble border under the tail
         txt.setColor(tc); txt.setAlpha((int) (255 * a));
         for (int i = 0; i < nRows; i++) c.drawText(rows[i], left + pad, top + pad * .6f + lh * (i + .8f), txt);
         c.restore();
