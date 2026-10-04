@@ -460,7 +460,12 @@ public class PenguinWallpaperService extends WallpaperService {
         }
 
         void onTap(float tx, float ty) {
-            if (!enabled("tap") || brain.offscreenState()) return;
+            if (!enabled("tap")) return;
+            // bowls and the ball first: the pets often stand in front of them and would swallow the tap
+            final int bowl = decor.bowlHit(tx, ty);
+            if (bowl != 0) { taps = 0; lastTapTarget = 2; gaze(tx, ty); feed(bowl, tx, ty); return; }
+            if (decor.ballHit(tx, ty)) { taps = 0; lastTapTarget = 2; gaze(tx, ty); play(tx, ty); return; }
+            if (brain.offscreenState()) return;
             final long now = SystemClock.uptimeMillis();
             taps = (now - lastTapMs < 1000L) ? taps + 1 : 1; lastTapMs = now;
             final int z0 = hitZone(tx, ty);
@@ -476,9 +481,6 @@ public class PenguinWallpaperService extends WallpaperService {
             brain.lastTouchAt = brain.time;
             if (buddyOn) buddy.userTouchedPenguin();
             if (z == Z_NONE) {
-                final int bowl = decor.bowlHit(tx, ty);
-                if (bowl != 0) { feed(bowl, tx, ty); return; }
-                if (decor.ballHit(tx, ty)) { play(tx, ty); return; }
                 if (brain.sleeping() || brain.asleepish()) return;          // do not wake it by tapping the wall
                 brain.touchX = tx; brain.react(Seqs.R_TOUCH); taps = 0; return;
             }

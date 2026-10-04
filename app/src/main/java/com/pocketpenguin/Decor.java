@@ -47,11 +47,11 @@ final class Decor {
     void markSeen(SeenSaver s) { seen = mask; newItem = 0; if (s != null) s.save(seen); }
     interface SeenSaver { void save(int seenMask); }
 
+    /** Which bowl (1 food, 2 water) is at (x, y). Checked before the pets, so the bowls stay tappable when someone stands in front of them. */
     int bowlHit(float x, float y) {
-        final float by = room.groundY - h * .008f;
-        if (Math.abs(y - by) > h * .05f) return 0;
-        if (Math.abs(x - w * .52f) < w * .075f) return 1;
-        if (Math.abs(x - w * .62f) < w * .075f) return 2;
+        if (y < room.groundY - h * .04f || y > room.groundY + h * .03f) return 0;
+        if (Math.abs(x - w * .52f) < w * .05f) return 1;
+        if (Math.abs(x - w * .62f) < w * .05f) return 2;
         return 0;
     }
 
