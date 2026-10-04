@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{{ c.company_name }}の男女の賃金差異・女性管理職比率（公表データ）｜{{ site.title }}{% endblock %}
+{% block description %}{{ c.company_name }}が公表している男女の賃金差異・女性管理職比率・男性の育休取得率を、業種の中央値と並べて確認できます。{% endblock %}
+{% block path %}{{ c.url }}{% endblock %}
+{% block content %}
+{% if has_aff %}<p class="pr-note">【PR】このページにはアフィリエイト広告を含みます。</p>{% endif %}
+<p class="crumb"><a href="/data/">業種別データ</a>{% if ind_slug %} ＞ <a href="/data/industry/{{ ind_slug }}/">{{ c.industry }}</a>{% endif %}</p>
+<h1>{{ c.company_name }}</h1>
+<p class="meta">{{ c.prefecture }} ／ {{ c.industry }} ／ 規模：{{ c.employees or '—' }}</p>
+<div class="table-wrap"><table>
+<thead><tr><th>指標</th><th class="num">この会社</th><th class="num">業種の中央値</th></tr></thead>
+<tbody>
+<tr><td>男女の賃金差異（全労働者／男性=100）</td><td class="num">{{ c.pay_gap_all if c.pay_gap_all is not none else '未公表' }}</td><td class="num">{{ med.paygap_median if med.paygap_median is not none else '—' }}</td></tr>
+<tr><td>男女の賃金差異（正規雇用）</td><td class="num">{{ c.pay_gap_regular if c.pay_gap_regular is not none else '未公表' }}</td><td class="num">—</td></tr>
+<tr><td>女性管理職比率</td><td class="num">{{ (c.female_manager_ratio ~ '%') if c.female_manager_ratio is not none else '未公表' }}</td><td class="num">{{ (med.mgr_median ~ '%') if med.mgr_median is not none else '—' }}</td></tr>
+<tr><td>労働者に占める女性の割合</td><td class="num">{{ (c.female_worker_ratio ~ '%') if c.female_worker_ratio is not none else '未公表' }}</td><td class="num">—</td></tr>
+<tr><td>男性の育児休業取得率</td><td class="num">{{ (c.male_leave_rate ~ '%') if c.male_leave_rate is not none else '未公表' }}</td><td class="num">—</td></tr>
+</tbody></table></div>
+<h2>この数字の見方</h2>
+<ul>
+<li>賃金差異は、職種・役職・勤続年数・雇用形態の構成の違いをそのまま反映します。「女性が多い職種の賃金が低い」「管理職に女性が少ない」ことが主な要因になりやすい指標です。</li>
+<li>女性管理職比率は、昇進の機会が性別で偏っていないかを見るヒントになります。労働者に占める女性の割合と並べて見ると分かりやすくなります。</li>
+<li>気になる点は、面接・面談で「評価制度」「育休からの復帰後の配置」などを具体的に質問して確かめるのがおすすめです（<a href="/articles/interview-questions-for-women/">聞き方の例</a>）。</li>
+</ul>
+{{ cta | safe }}
+<p class="small">出典：{{ stats.source_label }}。値は企業が自ら公表したもので、対象範囲や時点は企業により異なります。最新の情報は企業の公式発表や<a href="https://positive-ryouritsu.mhlw.go.jp/positivedb/" rel="noopener" target="_blank">厚生労働省のデータベース</a>でご確認ください。掲載内容の訂正は<a href="/about/#corrections">こちら</a>。</p>
+{% endblock %}

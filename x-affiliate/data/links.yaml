@@ -1,0 +1,118 @@
+# アフィリエイトリンク管理（唯一の正）。
+# 記事内では [[link:キー]] または [[link:キー|表示テキスト]] と書くと、ここのURLに展開される。
+# - url が空のリンクは「リンクなしのテキスト」として表示されるので、提携前でもサイトは壊れない。
+# - ASPの規約上、リンクタグ（URL）は改変しないこと。ここには ASP 管理画面のURLをそのまま貼る。
+# - affiliate: true のリンクを含む記事には、PR表記が自動で挿入される。
+# - active: false にすると一括で非表示（案件終了時）。
+
+links:
+  agent_women_1:
+    label: 女性特化型の転職エージェント（候補1）
+    url: ""
+    affiliate: true
+    active: true
+    note: A8で「女性 転職」検索→面談完了型を優先して提携申請
+  agent_women_2:
+    label: 女性特化型の転職エージェント（候補2）
+    url: ""
+    affiliate: true
+    active: true
+  agent_general_1:
+    label: 大手総合型の転職エージェント（候補1）
+    url: ""
+    affiliate: true
+    active: true
+  agent_general_2:
+    label: 大手総合型の転職エージェント（候補2）
+    url: ""
+    affiliate: true
+    active: true
+  jobsite_women_1:
+    label: 女性向け転職サイト
+    url: ""
+    affiliate: true
+    active: true
+  scout_1:
+    label: スカウト型の転職サービス
+    url: ""
+    affiliate: true
+    active: true
+  review_1:
+    label: 社員口コミサイト
+    url: ""
+    affiliate: true
+    active: true
+  coaching_1:
+    label: キャリアコーチングの無料カウンセリング（候補1）
+    url: ""
+    affiliate: true
+    active: true
+  coaching_2:
+    label: キャリアコーチングの無料カウンセリング（候補2）
+    url: ""
+    affiliate: true
+    active: true
+  school_1:
+    label: 女性向けキャリアスクールの無料体験
+    url: ""
+    affiliate: true
+    active: true
+  reskill_1:
+    label: オンライン資格講座
+    url: ""
+    affiliate: true
+    active: true
+  english_1:
+    label: オンライン英会話の無料体験
+    url: ""
+    affiliate: true
+    active: true
+  audio_1:
+    label: オーディオブックの無料体験
+    url: ""
+    affiliate: true
+    active: true
+
+  # 書籍（Amazon/楽天/もしも「かんたんリンク」のURLを貼る）
+  book_kim_jiyoung:
+    label: 『82年生まれ、キム・ジヨン』チョ・ナムジュ（筑摩書房）
+    url: ""
+    affiliate: true
+    active: true
+  book_goldin:
+    label: 『なぜ男女の賃金に格差があるのか』クラウディア・ゴールディン（慶應義塾大学出版会）
+    url: ""
+    affiliate: true
+    active: true
+  book_makino:
+    label: 『ジェンダー格差　実証経済学は何を語るか』牧野百恵（中公新書）
+    url: ""
+    affiliate: true
+    active: true
+  book_invisible_women:
+    label: 『存在しない女たち』キャロライン・クリアド＝ペレス（河出書房新社）
+    url: ""
+    affiliate: true
+    active: true
+  book_maeda:
+    label: 『女性のいない民主主義』前田健太郎（岩波新書）
+    url: ""
+    affiliate: true
+    active: true
+  book_ueno_tabusa:
+    label: 『上野先生、フェミニズムについてゼロから教えてください！』上野千鶴子・田房永子（大和書房）
+    url: ""
+    affiliate: true
+    active: true
+
+  # 公的情報（非アフィリエイト）
+  mhlw_positivedb:
+    label: 女性の活躍推進企業データベース（厚生労働省）
+    url: https://positive-ryouritsu.mhlw.go.jp/positivedb/
+    affiliate: false
+    active: true
+  mhlw_positivedb_opendata:
+    label: 女性の活躍推進企業データベース オープンデータ（厚生労働省）
+    url: https://positive-ryouritsu.mhlw.go.jp/positivedb/opendata/index.html
+    affiliate: false
+    active: true

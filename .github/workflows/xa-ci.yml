@@ -1,0 +1,24 @@
+# ミモザデータ：テスト・lint・ビルド確認
+name: "XA: ci"
+on:
+  push:
+    paths: ["x-affiliate/**", ".github/workflows/xa-*.yml"]
+  pull_request:
+    paths: ["x-affiliate/**", ".github/workflows/xa-*.yml"]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: x-affiliate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: x-affiliate/requirements.txt
+      - run: pip install -r requirements-dev.txt
+      - run: python -m pytest -q tests
+      - run: python scripts/lint_content.py
+      - run: python scripts/build_site.py

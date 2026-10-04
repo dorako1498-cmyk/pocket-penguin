@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ ind.name }}の男女の賃金差異・女性管理職比率｜{{ site.title }}{% endblock %}
+{% block description %}{{ ind.name }}（{{ ind.n }}社）の男女の賃金差異と女性管理職比率を、厚生労働省の公開データからまとめました。{% endblock %}
+{% block path %}/data/industry/{{ ind.slug }}/{% endblock %}
+{% block content %}
+<p class="crumb"><a href="/data/">業種別データ</a> ＞ {{ ind.name }}</p>
+<h1>{{ ind.name }}の男女の賃金差異・女性管理職比率</h1>
+<section class="stat-row">
+  <div class="stat"><span class="v">{{ ind.n }}</span><span class="l">収録企業数</span></div>
+  <div class="stat"><span class="v">{{ ind.paygap_median if ind.paygap_median is not none else '—' }}</span><span class="l">賃金差異 中央値（男性=100）</span></div>
+  <div class="stat"><span class="v">{{ ind.mgr_median if ind.mgr_median is not none else '—' }}%</span><span class="l">女性管理職比率 中央値</span></div>
+</section>
+{% if stats.paygap_all_median %}<p>全業種の中央値は、賃金差異 {{ stats.paygap_all_median }}、女性管理職比率 {{ stats.mgr_ratio_median }}% です。同じ業種の中でも会社ごとの差は大きいため、気になる会社は個別に確認するのがおすすめです。</p>{% endif %}
+{% if top_mgr %}
+<h2>女性管理職比率が高い企業（上位）</h2>
+<div class="table-wrap"><table><thead><tr><th>企業</th><th>所在地</th><th class="num">女性管理職比率</th><th class="num">賃金差異</th></tr></thead><tbody>
+{% for c in top_mgr %}<tr><td><a href="{{ c.url }}">{{ c.company_name }}</a></td><td>{{ c.prefecture }}</td><td class="num">{{ c.female_manager_ratio }}%</td><td class="num">{{ c.pay_gap_all if c.pay_gap_all is not none else '—' }}</td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+{% if top_pg %}
+<h2>男女の賃金差異が小さい企業（上位）</h2>
+<div class="table-wrap"><table><thead><tr><th>企業</th><th>所在地</th><th class="num">賃金差異</th><th class="num">女性管理職比率</th></tr></thead><tbody>
+{% for c in top_pg %}<tr><td><a href="{{ c.url }}">{{ c.company_name }}</a></td><td>{{ c.prefecture }}</td><td class="num">{{ c.pay_gap_all }}</td><td class="num">{{ c.female_manager_ratio if c.female_manager_ratio is not none else '—' }}%</td></tr>{% endfor %}
+</tbody></table></div>
+{% endif %}
+<p class="small">ランキングではなく、公表値の並べ替えです。出典：{{ stats.source_label }}。</p>
+{{ cta | safe }}
+{% if articles %}<h2>数字の読み方</h2><ul>{% for a in articles %}<li><a href="{{ a.url }}">{{ a.title }}</a></li>{% endfor %}</ul>{% endif %}
+{% endblock %}

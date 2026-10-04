@@ -1,0 +1,18 @@
+# ネタ・ニュース収集用 RSS / Atom。タイトルとURLだけを「ネタ帳」として使い、本文の転載はしない。
+feeds:
+  - name: 厚生労働省 新着情報
+    url: https://www.mhlw.go.jp/stf/news.rdf
+  - name: Google News 女性管理職
+    url: https://news.google.com/rss/search?q=%E5%A5%B3%E6%80%A7%E7%AE%A1%E7%90%86%E8%81%B7&hl=ja&gl=JP&ceid=JP:ja
+  - name: Google News 男女賃金格差
+    url: https://news.google.com/rss/search?q=%E7%94%B7%E5%A5%B3+%E8%B3%83%E9%87%91+%E5%B7%AE%E7%95%B0&hl=ja&gl=JP&ceid=JP:ja
+  - name: Google News 育休 男性
+    url: https://news.google.com/rss/search?q=%E7%94%B7%E6%80%A7+%E8%82%B2%E4%BC%91+%E5%8F%96%E5%BE%97%E7%8E%87&hl=ja&gl=JP&ceid=JP:ja
+  - name: Google News 女性活躍推進法
+    url: https://news.google.com/rss/search?q=%E5%A5%B3%E6%80%A7%E6%B4%BB%E8%BA%8D%E6%8E%A8%E9%80%B2%E6%B3%95&hl=ja&gl=JP&ceid=JP:ja
+  - name: Google News 女性 転職
+    url: https://news.google.com/rss/search?q=%E5%A5%B3%E6%80%A7+%E8%BB%A2%E8%81%B7+%E3%82%AD%E3%83%A3%E3%83%AA%E3%82%A2&hl=ja&gl=JP&ceid=JP:ja
+
+# このキーワードを含む記事を優先
+priority_keywords: [賃金, 差異, 管理職, 育休, 育児休業, 女性活躍, えるぼし, くるみん, ハラスメント, 転職, 最低賃金, 非正規, 公表]
+max_items: 40

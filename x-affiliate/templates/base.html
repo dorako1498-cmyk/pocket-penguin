@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="{{ site.lang or 'ja' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}{{ site.title }}｜{{ site.tagline }}{% endblock %}</title>
+<meta name="description" content="{% block description %}{{ site.description }}{% endblock %}">
+{% block robots %}{% endblock %}
+<link rel="canonical" href="{{ site.base_url | trim('/') }}{% block path %}/{% endblock %}">
+<meta property="og:site_name" content="{{ site.title }}">
+<meta property="og:title" content="{{ self.title() }}">
+<meta property="og:description" content="{{ self.description() }}">
+<meta property="og:type" content="{% block ogtype %}website{% endblock %}">
+<meta name="twitter:card" content="summary">
+<link rel="alternate" type="application/rss+xml" title="{{ site.title }}" href="/feed.xml">
+<link rel="icon" href="/static/brand/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/static/style.css">
+{% if site.cf_analytics_token %}<script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "{{ site.cf_analytics_token }}"}'></script>{% endif %}
+{% block head %}{% endblock %}
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <a class="logo" href="/"><span class="dot" aria-hidden="true"></span>{{ site.title }}</a>
+    <nav><a href="/articles/">記事</a><a href="/data/">データ</a><a href="/about/">運営方針</a></nav>
+  </div>
+</header>
+<main class="wrap">
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p>{{ site.title }} — {{ site.tagline }}</p>
+    <p class="small">当サイトはアフィリエイトプログラムを利用しており、記事内のリンクから申込・購入があると運営者が報酬を受け取る場合があります（掲載順位や評価は報酬額では決めていません）。統計の出典は各ページに記載しています。</p>
+    <p class="small"><a href="/about/">運営者情報・編集方針</a> ／ <a href="/privacy/">プライバシーポリシー・広告について</a></p>
+  </div>
+</footer>
+</body>
+</html>

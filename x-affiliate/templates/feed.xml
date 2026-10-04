@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+<channel>
+<title>{{ site.title }}</title>
+<link>{{ site.base_url }}</link>
+<description>{{ site.description }}</description>
+<language>ja</language>
+{% for a in articles %}<item>
+<title>{{ a.title }}</title>
+<link>{{ site.base_url | trim('/') }}{{ a.url }}</link>
+<guid>{{ site.base_url | trim('/') }}{{ a.url }}</guid>
+<description>{{ a.description }}</description>
+<pubDate>{{ a.date }}</pubDate>
+</item>
+{% endfor %}</channel>
+</rss>

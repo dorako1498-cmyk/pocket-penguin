@@ -1,0 +1,17 @@
+site:
+  title: ミモザデータ
+  tagline: 女性の働き方を、数字で選ぶ。
+  base_url: https://mimosa-data.jp      # ドメイン確定後に変更
+  lang: ja
+  description: 厚生労働省の公開データなどから、男女の賃金差異・女性管理職比率・育休取得率を読み解き、女性が働きやすい会社・業界を選ぶための情報をまとめる、出典つきのデータメディアです。
+  operator: ミモザデータ編集部
+  contact_url: ""            # Googleフォーム等のURL（空なら about ページにメールのみ表示）
+  contact_email: ""          # 公開用メール（任意）
+  cf_analytics_token: ""     # Cloudflare Web Analytics のトークン（空なら計測タグなし）
+  amazon_associate_disclosure: true   # Amazonアソシエイト参加時は true のまま
+
+data_pages:
+  enabled: true
+  min_employees: 101           # この人数以上の企業のみ個別ページ化
+  max_company_pages: 3000      # Cloudflare Pages の 20,000ファイル上限と薄いページ量産を避けるための上限
+  min_companies_per_group: 8   # 業種・都道府県ページを作る最低社数

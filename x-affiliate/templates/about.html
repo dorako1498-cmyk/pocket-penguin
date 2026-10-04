@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}運営者情報・編集方針｜{{ site.title }}{% endblock %}
+{% block path %}/about/{% endblock %}
+{% block content %}
+<article class="article"><div class="body">
+<h1>運営者情報・編集方針</h1>
+<h2>{{ site.title }}について</h2>
+<p>{{ site.description }}</p>
+<p>運営：{{ site.operator }}{% if site.contact_email %}（{{ site.contact_email }}）{% endif %}</p>
+<h2>編集方針</h2>
+<ul>
+<li><strong>出典のある事実だけを断定します。</strong>統計・制度は官公庁や企業の一次情報を出典として明記します。</li>
+<li><strong>体験談をつくりません。</strong>当サイトと公式Xアカウントは、実在しない人物の体験を事実のように語ることはしません。</li>
+<li><strong>誰かを叩きません。</strong>性別・世代・企業を攻撃する表現は使わず、構造と選択肢に焦点を当てます。</li>
+<li><strong>AIの利用について。</strong>調査・下書きにAIを利用し、公開前に編集部が内容と出典を確認しています。</li>
+<li><strong>広告について。</strong>アフィリエイトプログラムを利用しています。紹介する順番や評価は、記事内で示した基準に基づき、報酬額では決めていません。広告を含むページには【PR】と表示します。</li>
+</ul>
+<h2 id="corrections">訂正・掲載内容に関するご連絡</h2>
+<p>企業データは公表値をそのまま掲載しています。誤りや更新があれば、{% if site.contact_url %}<a href="{{ site.contact_url }}" rel="noopener" target="_blank">お問い合わせフォーム</a>{% elif site.contact_email %}{{ site.contact_email }}{% else %}公式Xアカウントへのメッセージ{% endif %}からお知らせください。確認のうえ速やかに修正します。</p>
+</div></article>
+{% endblock %}

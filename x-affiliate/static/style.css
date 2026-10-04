@@ -1,0 +1,80 @@
+:root {
+  --bg: #fffdf7;
+  --fg: #23201a;
+  --muted: #6b655a;
+  --line: #e9e3d3;
+  --card: #ffffff;
+  --accent: #f2c230;      /* ミモザ */
+  --accent-ink: #5a4500;
+  --link: #8a5a00;
+  --pr-bg: #fff6d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #17150f;
+    --fg: #f1ece0;
+    --muted: #b3ab99;
+    --line: #34302a;
+    --card: #1f1c16;
+    --accent: #e5b423;
+    --accent-ink: #1c1500;
+    --link: #f2c94c;
+    --pr-bg: #2c2510;
+  }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--fg);
+  font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic UI", system-ui, sans-serif;
+  line-height: 1.85; font-size: 16px;
+}
+a { color: var(--link); }
+.wrap { max-width: 760px; margin: 0 auto; padding: 0 16px; }
+.site-header { border-bottom: 1px solid var(--line); }
+.site-header .wrap { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 56px; flex-wrap: wrap; }
+.logo { font-weight: 700; text-decoration: none; color: var(--fg); display: inline-flex; align-items: center; gap: 8px; }
+.logo .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); box-shadow: 6px -4px 0 -2px var(--accent), -5px -5px 0 -3px var(--accent); }
+nav a { margin-left: 14px; color: var(--fg); text-decoration: none; font-size: 15px; }
+main { padding: 24px 16px 48px; }
+h1 { font-size: 1.6rem; line-height: 1.45; margin: 0.4em 0 0.6em; }
+h2 { font-size: 1.25rem; margin-top: 2em; padding-left: 10px; border-left: 5px solid var(--accent); }
+h3 { font-size: 1.08rem; margin-top: 1.6em; }
+.hero h1 { font-size: 1.9rem; }
+.btn { display: inline-block; background: var(--accent); color: var(--accent-ink); padding: 10px 18px; border-radius: 999px; text-decoration: none; font-weight: 700; margin: 4px 6px 4px 0; }
+.btn.ghost { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+.cards { list-style: none; padding: 0; display: grid; gap: 12px; }
+.cards a { display: block; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; text-decoration: none; color: var(--fg); }
+.cards strong { display: block; line-height: 1.5; }
+.cards .desc { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+.cards .cat { display: block; color: var(--muted); font-size: 12px; }
+.chips { list-style: none; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.chips a { display: inline-block; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; text-decoration: none; color: var(--fg); font-size: 14px; }
+.stat-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin: 16px 0; }
+.stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+.stat .v { display: block; font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .l { display: block; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; margin: 12px 0; }
+th, td { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pr-note { background: var(--pr-bg); border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.meta, .crumb { color: var(--muted); font-size: 13px; }
+.small { font-size: 13px; color: var(--muted); }
+.note { margin-top: 2em; }
+.article .body img { max-width: 100%; height: auto; }
+.article .body blockquote { margin: 1em 0; padding: 4px 16px; border-left: 4px solid var(--line); color: var(--muted); }
+.cta { background: var(--card); border: 2px solid var(--accent); border-radius: 14px; padding: 16px; margin: 24px 0; }
+.cta-title { font-weight: 700; margin: 0 0 6px; }
+.cta p { margin: 0 0 10px; font-size: 14px; }
+.cta-btn a { display: inline-block; background: var(--accent); color: var(--accent-ink); padding: 10px 20px; border-radius: 999px; font-weight: 700; text-decoration: none; }
+.cta-btn.pending { color: var(--muted); font-size: 13px; }
+.link-pending { text-decoration: underline dotted; }
+.sources li { font-size: 14px; }
+.site-footer { border-top: 1px solid var(--line); padding: 24px 0 40px; color: var(--muted); }
+@media (max-width: 480px) {
+  h1 { font-size: 1.4rem; }
+  .hero h1 { font-size: 1.55rem; }
+  nav a { margin-left: 10px; }
+}

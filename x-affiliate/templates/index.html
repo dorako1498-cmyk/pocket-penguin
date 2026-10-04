@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <h1>{{ site.tagline }}</h1>
+  <p>男女の賃金差異、女性管理職比率、男性の育休取得率。会社が公表している数字を、出典つきで、やさしく読み解きます。体験談ではなく、あなたが自分で判断するための材料を。</p>
+  <p><a class="btn" href="/articles/">記事を読む</a> {% if data.enabled %}<a class="btn ghost" href="/data/">業種別データを見る</a>{% endif %}</p>
+</section>
+{% if stats.n_companies %}
+<section class="stat-row">
+  <div class="stat"><span class="v">{{ "{:,}".format(stats.n_companies) }}</span><span class="l">収録企業数</span></div>
+  {% if stats.paygap_all_median %}<div class="stat"><span class="v">{{ stats.paygap_all_median }}%</span><span class="l">男女の賃金差異（中央値）<br>男性=100とした女性の賃金</span></div>{% endif %}
+  {% if stats.mgr_ratio_median is not none %}<div class="stat"><span class="v">{{ stats.mgr_ratio_median }}%</span><span class="l">女性管理職比率（中央値）</span></div>{% endif %}
+</section>
+<p class="small">出典：{{ stats.source_label }}。企業が自ら公表した値で、算定範囲や時点は企業ごとに異なります。</p>
+{% endif %}
+<h2>新着記事</h2>
+<ul class="cards">
+{% for a in articles %}
+  <li><a href="{{ a.url }}"><span class="cat">{{ a.category_label or '' }}</span><strong>{{ a.title }}</strong><span class="desc">{{ a.description }}</span></a></li>
+{% endfor %}
+</ul>
+{% if data.enabled and data.industries %}
+<h2>業種別に見る</h2>
+<ul class="chips">{% for i in data.industries %}<li><a href="/data/industry/{{ i.slug }}/">{{ i.name }}</a></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

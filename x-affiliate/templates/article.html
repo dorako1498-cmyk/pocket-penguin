@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}{{ a.title }}｜{{ site.title }}{% endblock %}
+{% block description %}{{ a.description }}{% endblock %}
+{% block path %}{{ a.url }}{% endblock %}
+{% block ogtype %}article{% endblock %}
+{% block robots %}{% if a.noindex %}<meta name="robots" content="noindex">{% endif %}{% endblock %}
+{% block content %}
+<article class="article">
+  {% if a.has_aff %}<p class="pr-note">【PR】本記事はアフィリエイト広告を含みます。紹介の順番や評価は、報酬ではなく記事内に示した基準で決めています。</p>{% endif %}
+  <h1>{{ a.title }}</h1>
+  <p class="meta">公開 {{ a.date }}{% if a.updated != a.date %} ／ 更新 {{ a.updated }}{% endif %} ／ {{ site.operator }}</p>
+  <div class="body">{{ a.html | safe }}</div>
+  {% if a.sources %}
+  <section class="sources"><h2>出典・参考</h2><ul>{% for s in a.sources %}<li>{{ s }}</li>{% endfor %}</ul></section>
+  {% endif %}
+  <p class="small note">この記事は、公開情報をもとに AI の補助を受けて作成し、編集部が内容を確認しています。誤りを見つけた場合は<a href="/about/#corrections">訂正依頼</a>からお知らせください。</p>
+</article>
+{% if related %}
+<h2>関連記事</h2>
+<ul class="cards">{% for r in related %}<li><a href="{{ r.url }}"><strong>{{ r.title }}</strong><span class="desc">{{ r.description }}</span></a></li>{% endfor %}</ul>
+{% endif %}
+{% endblock %}

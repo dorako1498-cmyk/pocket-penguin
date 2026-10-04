@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}業種別データ：男女の賃金差異・女性管理職比率｜{{ site.title }}{% endblock %}
+{% block description %}厚生労働省の公開データから、業種ごとの男女の賃金差異と女性管理職比率の中央値をまとめました。{% endblock %}
+{% block path %}/data/{% endblock %}
+{% block content %}
+<h1>業種別データ</h1>
+<p>男女の賃金差異は「男性の平均賃金を100としたときの女性の平均賃金」です。100に近いほど差が小さいことを示します。ただし、職種構成や勤続年数の違いも反映されるため、数字だけで会社の良し悪しは決まりません（<a href="/articles/how-to-read-pay-gap/">読み解き方</a>）。</p>
+<div class="table-wrap"><table>
+<thead><tr><th>業種</th><th class="num">企業数</th><th class="num">賃金差異 中央値</th><th class="num">女性管理職比率 中央値</th></tr></thead>
+<tbody>
+{% for i in industries %}<tr><td><a href="/data/industry/{{ i.slug }}/">{{ i.name }}</a></td><td class="num">{{ i.n }}</td><td class="num">{{ i.paygap_median if i.paygap_median is not none else '—' }}</td><td class="num">{{ i.mgr_median if i.mgr_median is not none else '—' }}</td></tr>{% endfor %}
+</tbody></table></div>
+<p class="small">出典：{{ stats.source_label }}。中央値は当サイトで算出。企業が自ら公表した値であり、算定範囲・時点は企業ごとに異なります。個別企業ページは {{ n_pages }} 社分を掲載しています。</p>
+{% endblock %}

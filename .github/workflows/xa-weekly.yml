@@ -1,0 +1,63 @@
+# ミモザデータ：週次（土曜朝）にネタ収集→データ更新→効果測定→翌週の投稿・記事を生成→PRを作成
+name: "XA: weekly content PR"
+on:
+  schedule:
+    - cron: "7 0 * * 6"     # 土曜 09:07 JST
+  workflow_dispatch:
+concurrency:
+  group: xa-weekly
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: x-affiliate
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      X_API_KEY: ${{ secrets.X_API_KEY }}
+      X_API_SECRET: ${{ secrets.X_API_SECRET }}
+      X_ACCESS_TOKEN: ${{ secrets.X_ACCESS_TOKEN }}
+      X_ACCESS_TOKEN_SECRET: ${{ secrets.X_ACCESS_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: x-affiliate/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Collect trends
+        run: python scripts/collect_trends.py || true
+      - name: Refresh women DB (monthly)
+        run: python scripts/fetch_womendb.py --if-older-than 27 || echo "::warning::womendb fetch failed"
+      - name: Fetch X metrics & weekly report
+        run: |
+          python scripts/fetch_x_metrics.py || echo "::warning::metrics failed"
+          python scripts/weekly_report.py
+      - name: Generate next week's posts
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then python scripts/generate_posts.py; else python scripts/generate_posts.py --plan-only; fi
+      - name: Generate one article
+        if: env.ANTHROPIC_API_KEY != ''
+        run: python scripts/generate_article.py || echo "::warning::article generation failed"
+      - name: Lint & build check
+        run: |
+          python scripts/lint_content.py || echo "::warning::lint errors (PR本文を確認)"
+          python scripts/build_site.py
+      - name: PR body
+        run: python scripts/make_pr_body.py > ../xa_pr_body.md
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: xa/weekly
+          delete-branch: true
+          title: "【要確認】来週の投稿と記事（マージ＝承認）"
+          body-path: xa_pr_body.md
+          commit-message: "xa: weekly posts, article, report"
+          add-paths: |
+            x-affiliate/posts
+            x-affiliate/content
+            x-affiliate/data
+            x-affiliate/analytics

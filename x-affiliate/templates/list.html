@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}記事一覧｜{{ site.title }}{% endblock %}
+{% block path %}/articles/{% endblock %}
+{% block content %}
+<h1>記事一覧</h1>
+<ul class="cards">
+{% for a in articles %}<li><a href="{{ a.url }}"><span class="cat">{{ a.date }}</span><strong>{{ a.title }}</strong><span class="desc">{{ a.description }}</span></a></li>{% endfor %}
+</ul>
+{% endblock %}
