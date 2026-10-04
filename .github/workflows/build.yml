@@ -86,10 +86,11 @@ jobs:
       - name: Publish screenshots
         if: always()
         run: |
+          set +e
           ls -la shots || exit 0
           git init -q pub && cd pub
           git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
           git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
           git fetch -q origin ci-screenshots && git checkout -q ci-screenshots || git checkout -q --orphan ci-screenshots
           cp ../shots/*.png . && git add -A && git commit -qm "Screenshots for ${GITHUB_SHA::7} (API ${{ matrix.api }})" || exit 0
-          for i in 1 2 3; do git pull -q --rebase origin ci-screenshots 2>/dev/null; git push -q origin HEAD:ci-screenshots && break; sleep 3; done
+          for i in 1 2 3; do git push -q origin HEAD:ci-screenshots && break; git pull -q --rebase origin ci-screenshots; sleep 3; done
