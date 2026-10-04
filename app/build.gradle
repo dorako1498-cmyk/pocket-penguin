@@ -2,4 +2,9 @@ plugins { id 'com.android.application' }
 
 android { namespace 'com.pocketpenguin'; compileSdk 35
     defaultConfig { applicationId 'com.pocketpenguin'; minSdk 23; targetSdk 35; versionCode 10; versionName '0.8.0' }
+    // Fixed key so every CI build has the same signature and can be installed over the previous one.
+    signingConfigs {
+        shared { storeFile file('pocketpenguin.keystore'); storePassword 'pocketpenguin'; keyAlias 'pocketpenguin'; keyPassword 'pocketpenguin' }
+    }
+    buildTypes { debug { signingConfig signingConfigs.shared } }
 }

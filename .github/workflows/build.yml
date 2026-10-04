@@ -2,6 +2,8 @@ name: Build APK
 on:
   push:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,8 +21,26 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Check APK
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          BT=$ANDROID_HOME/build-tools/34.0.0
+          $BT/aapt dump badging $APK | head -20
+          $BT/apksigner verify --verbose --print-certs $APK
+          VER=$($BT/aapt dump badging $APK | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
+          cp $APK pocket-penguin-$VER.apk
+          echo "VER=$VER" >> $GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
           name: pocket-penguin-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: pocket-penguin-*.apk
           if-no-files-found: error
+      # Publish the APK as a plain file on the Releases page so a phone can download it directly (no zip).
+      - name: Publish to Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete apk-latest --yes --cleanup-tag || true
+          gh release create apk-latest pocket-penguin-$VER.apk --target "$GITHUB_SHA" --prerelease \
+            --title "Pocket Penguin $VER (最新ビルド)" \
+            --notes "ブランチ ${GITHUB_REF_NAME} / コミット ${GITHUB_SHA::7} からの自動ビルドです。下の .apk をタップしてダウンロードしてください。"
