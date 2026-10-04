@@ -122,7 +122,7 @@ final class Decor {
     }
     private void bowlBody(Canvas c, float x, float y, int col, int dark) {
         final float bw = w * .055f;
-        oval(c, x - bw * 1.2f, y + h * .006f, x + bw * 1.2f, y + h * .028f, 0x30000000);           // shadow
+        oval(c, x - bw * 1.12f, y + h * .002f, x + bw * 1.12f, y + h * .019f, 0x33000000);         // contact shadow
         oval(c, x - bw, y - h * .018f, x + bw, y + h * .014f, dark);                                // outer wall
         oval(c, x - bw * .92f, y - h * .02f, x + bw * .92f, y + h * .006f, col);                    // rim
         oval(c, x - bw * .78f, y - h * .021f, x + bw * .78f, y - h * .003f, dark);                  // inside (empty)

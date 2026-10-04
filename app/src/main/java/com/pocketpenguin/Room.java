@@ -248,6 +248,16 @@ final class Room {
         // baseboard
         p.setColor(0xFFFFF7EA); c.drawRect(0, wallBottom - h * .014f, w, wallBottom + h * .004f, p);
         p.setColor(0x22000000); c.drawRect(0, wallBottom + h * .004f, w, wallBottom + h * .012f, p);
+        // side walls: the back wall ends a little before the screen edges, the strips outside are the room's side walls
+        // seen in perspective (darker, with their floor edge running towards the viewer)
+        final float cl = w * .045f, cr = w - cl, ex = vpx + (cl - vpx) * spread, exr = vpx + (cr - vpx) * spread;
+        path.reset(); path.moveTo(0, 0); path.lineTo(cl, 0); path.lineTo(cl, wallBottom); path.lineTo(ex, h); path.lineTo(0, h); path.close();
+        p.setColor(0xFFE9D3BF); c.drawPath(path, p);
+        path.reset(); path.moveTo(w, 0); path.lineTo(cr, 0); path.lineTo(cr, wallBottom); path.lineTo(exr, h); path.lineTo(w, h); path.close();
+        c.drawPath(path, p);
+        p.setColor(0x18000000); p.setStrokeWidth(Math.max(2f, w * .003f));
+        c.drawLine(cl, 0, cl, wallBottom, p); c.drawLine(cr, 0, cr, wallBottom, p);
+        p.setColor(0x30A06B3C); c.drawLine(cl, wallBottom, ex, h, p); c.drawLine(cr, wallBottom, exr, h, p);
         // rug
         ov(c, w * .14f, groundY - h * .03f, w * .86f, groundY + h * .10f, 0xFFF3B7B0);
         ov(c, w * .19f, groundY - h * .015f, w * .81f, groundY + h * .085f, 0xFFFAD2C9);
