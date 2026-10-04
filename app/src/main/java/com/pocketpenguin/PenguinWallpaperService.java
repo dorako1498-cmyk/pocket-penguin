@@ -90,7 +90,7 @@ public class PenguinWallpaperService extends WallpaperService {
             density = getResources().getDisplayMetrics().density;
             art = new PenguinArt(getResources());
             bart = new BuddyArt(getResources());
-            care = new Care(prefs, System.currentTimeMillis()); care.unlockAll = prefs.getBoolean("unlockall", false);
+            care = new Care(prefs, System.currentTimeMillis()); care.unlockAll = prefs.getBoolean("unlockall", false); care.fast = prefs.getBoolean("carefast", true);
             brain.care = care; buddy.care = care;
             decor = new Decor(care, room, prefs.getInt("decor_seen", 0));
             talk = new Talk(); talkOn = prefs.getBoolean("talk", true);
@@ -146,7 +146,7 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (prefs.getInt("floor", 5) != floorStep && w > 0) { floorStep = prefs.getInt("floor", 5); room.layout(w, h, floorStep); brain.layout(w, h); buddy.layout(w, h, room, brain.u, prefs.getInt("buddysize", 2)); }   // slider changed in the app
                 if (w > 0) buddy.layout(w, h, room, brain.u, prefs.getInt("buddysize", 2));   // size slider
                 buddyOn = prefs.getBoolean("buddy", true); talkOn = prefs.getBoolean("talk", true); care.unlockAll = prefs.getBoolean("unlockall", false);
-                care.advance(System.currentTimeMillis());
+                care.fast = prefs.getBoolean("carefast", true); care.advance(System.currentTimeMillis());
                 room.tick(hour, month, forcedScene());
                 if (pendingGreet) { pendingGreet = false; brain.wakeForUser(true); }
                 handler.post(loop);

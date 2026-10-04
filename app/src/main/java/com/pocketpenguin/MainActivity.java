@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this); LinearLayout options = new LinearLayout(this); options.setOrientation(LinearLayout.VERTICAL); options.setPadding(4, 18, 4, 12);
         status = new TextView(this); status.setTextSize(17); status.setTextColor(0xff20333d); status.setTypeface(android.graphics.Typeface.MONOSPACE); status.setPadding(20, 16, 20, 16); status.setBackgroundColor(0xffe8f2f7);
         options.addView(status, new LinearLayout.LayoutParams(-1, -2));
-        addSwitch(options, "Tap reactions", "tap", true); addSwitch(options, "Jinbei (whale shark buddy)", "buddy", true); addSwitch(options, "Chat bubbles (the two talk to each other)", "talk", true); addSwitch(options, "Show every room item now (for trying them out)", "unlockall", false); addSwitch(options, "Look at the clock", "clock", true); addSwitch(options, "Charging reaction", "charging", true); addSwitch(options, "Wake when screen turns on", "screen", true); addSwitch(options, "Screen-edge door", "door", true); addSwitch(options, "Time-of-day room & weather", "time", true); addSwitch(options, "省電力 mode", "power", false); addScenePicker(options);
+        addSwitch(options, "Tap reactions", "tap", true); addSwitch(options, "Jinbei (whale shark buddy)", "buddy", true); addSwitch(options, "Chat bubbles (the two talk to each other)", "talk", true); addSwitch(options, "Show every room item now (for trying them out)", "unlockall", false); addSwitch(options, "はやいお世話: 数分でおなかがすく (反応を見る用)", "carefast", true); addSwitch(options, "Look at the clock", "clock", true); addSwitch(options, "Charging reaction", "charging", true); addSwitch(options, "Wake when screen turns on", "screen", true); addSwitch(options, "Screen-edge door", "door", true); addSwitch(options, "Time-of-day room & weather", "time", true); addSwitch(options, "省電力 mode", "power", false); addScenePicker(options);
         TextView label = new TextView(this); label.setText("Animation amount (calm / normal / lively)"); label.setTextSize(16); label.setTextColor(0xff20333d); options.addView(label);
         SeekBar speed = new SeekBar(this); speed.setMax(2); speed.setProgress(prefs.getInt("speed", 1)); speed.setContentDescription("Animation amount"); speed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){ public void onProgressChanged(SeekBar b,int p,boolean f){prefs.edit().putInt("speed",p).apply();} public void onStartTrackingTouch(SeekBar b){} public void onStopTrackingTouch(SeekBar b){} }); options.addView(speed);
         TextView fl = new TextView(this); fl.setText("Floor height (raise it if the dock covers the penguin)"); fl.setTextSize(16); fl.setTextColor(0xff20333d); fl.setPadding(0, 18, 0, 0); options.addView(fl);
@@ -54,7 +54,7 @@ public class MainActivity extends Activity {
     private void showStatus() {
         if (status == null) return;
         if (prefs.getLong("care_first", 0L) == 0L) { status.setText("ペンギンのようす\n(壁紙をはじめると表示されます)"); return; }
-        final Care c = new Care(prefs, System.currentTimeMillis());
+        final Care c = new Care(prefs, prefs.getLong("care_last", System.currentTimeMillis()));
         status.setText("ペンギンのようす\n"
             + "おなか   " + bar(c.pFull) + "\n"
             + "のど     " + bar(c.pHyd) + "\n"

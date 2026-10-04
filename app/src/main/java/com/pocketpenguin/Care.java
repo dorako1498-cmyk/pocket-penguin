@@ -17,6 +17,7 @@ final class Care {
     long lastPlayMs = -1L;                                           // when the user last played with the penguin (ball tap)
     private float saveClock;
     boolean unlockAll;
+    boolean fast;                                                    // quick care: needs fall ~55x faster (hungry a few minutes after a meal)
 
     Care(SharedPreferences prefs, long nowMs) {
         this.prefs = prefs;
@@ -35,16 +36,18 @@ final class Care {
     void advance(long nowMs) {
         float hours = Math.max(0f, Math.min(18f, (nowMs - lastMs) / 3600000f)); lastMs = nowMs;
         if (hours <= 0f) return;
+        final float water0 = water;
+        if (fast) hours *= 55f;
         pFull = Math.max(.12f, pFull - .13f * hours); pHyd = Math.max(.15f, pHyd - .17f * hours);
         bFull = Math.max(.12f, bFull - .10f * hours); bHyd = Math.max(.15f, bHyd - .14f * hours);
         pMood = Math.max(.15f, pMood - .09f * hours);
-        water = Math.max(0f, water - .015f * hours);
+        water = Math.max(0f, water0 - .015f * (fast ? hours / 55f : hours));          // evaporation stays slow
     }
 
     /** Called every frame (cheap); saves now and then. */
     void update(float dt, long nowMs) {
         saveClock += dt;
-        if (saveClock > 20f) { saveClock = 0f; advance(nowMs); save(); }
+        if (saveClock > (fast ? 5f : 20f)) { saveClock = 0f; advance(nowMs); save(); }
     }
 
     void save() {
