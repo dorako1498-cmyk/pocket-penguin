@@ -49,17 +49,22 @@ final class Decor {
 
     /** Which bowl (1 food, 2 water) is at (x, y). Checked before the pets, so the bowls stay tappable when someone stands in front of them. */
     int bowlHit(float x, float y) {
-        if (y < room.bowlY - h * .06f || y > room.bowlY + h * .035f) return 0;
+        if (y < room.bowlY - h * .045f || y > room.bowlY + h * .035f) return 0;
         if (Math.abs(x - w * Room.FOOD_X) < w * .09f) return 1;
         if (Math.abs(x - w * Room.WATER_X) < w * .09f) return 2;
         return 0;
     }
 
     /** True when (x, y) is on or right around the ball (generous, it is small). */
-    boolean ballHit(float x, float y) {
-        final float by = room.groundY + h * .002f - ballH;
-        return Math.abs(x - room.ballX) < ballR * 3.2f && Math.abs(y - by) < ballR * 3.2f;
+    boolean ballHit(float x, float y) { return ballHit(x, y, 3.2f); }
+    /** k = hit radius in ball radii. */
+    boolean ballHit(float x, float y, float k) {
+        final float by = ballFloorY() - ballR - ballH;
+        return Math.abs(x - room.ballX) < ballR * k && Math.abs(y - by) < ballR * k;
     }
+    /** The ball rolls on a lane between the pets' feet and the bowls, so it is drawn in front of the pets and stays tappable. */
+    private float ballFloorY() { return room.groundY + h * .066f; }
+
     /** The user flicked the ball: it rolls away from the finger, towards the middle of the room. */
     void flickBall() { kick(room.ballX < w * .5f ? 1 : -1, w * .55f); ballHv = h * .4f; }
 
@@ -101,7 +106,6 @@ final class Decor {
         if (has(FISH)) fish(c, w * .27f, back);
         if (has(PUMPKIN)) pumpkin(c, w * .72f, back, night);
         if (has(TREE)) tree(c, w * .72f, back);
-        ball(c);
     }
 
     private void oval(Canvas c, float l, float t, float r, float b, int col) { p.setColor(col); rf.set(l, t, r, b); c.drawOval(rf, p); }
@@ -110,6 +114,7 @@ final class Decor {
     /** The two bowls in the foreground (drawn after the pets, so whoever eats stands behind the bowl). Bigger = closer to the viewer. */
     void drawBowls(Canvas c) {
         p.setStyle(Paint.Style.FILL); p.setShader(null); p.setAlpha(255);
+        ball(c);
         final float S = 1.4f, y0 = room.groundY + h * .004f;          // geometry below is drawn at the old floor line, then moved and scaled
         c.save(); c.translate(0f, room.bowlY - y0);
         for (int k = 1; k <= 2; k++) {
@@ -149,9 +154,9 @@ final class Decor {
     }
 
     private void ball(Canvas c) {
-        final float bx = room.ballX, by = room.groundY + h * .002f - ballH, r = ballR;
+        final float fy = ballFloorY(), bx = room.ballX, by = fy - ballR - ballH, r = ballR;
         final float sh = Math.max(.4f, 1f - ballH / (h * .08f));
-        oval(c, bx - r * 1.1f * sh, room.groundY + h * .012f, bx + r * 1.1f * sh, room.groundY + h * .026f, 0x26000000);
+        oval(c, bx - r * 1.1f * sh, fy - r * .3f, bx + r * 1.1f * sh, fy + r * .3f, 0x2E000000);
         p.setColor(0xFFFFD27A); c.drawCircle(bx, by, r, p);
         c.save(); c.rotate(ballRot, bx, by);
         p.setColor(0xFFF28C5B); rf.set(bx - r, by - r, bx + r, by + r); c.drawArc(rf, 200f, 70f, true, p); c.drawArc(rf, 20f, 70f, true, p);

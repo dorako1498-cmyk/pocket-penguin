@@ -464,7 +464,7 @@ public class PenguinWallpaperService extends WallpaperService {
         void onTap(float tx, float ty) {
             if (!enabled("tap")) return;
             // bowls and the ball first: the pets often stand in front of them and would swallow the tap
-            final int bowl = decor.bowlHit(tx, ty);
+            final int bowl = decor.ballHit(tx, ty, 1.5f) ? 0 : decor.bowlHit(tx, ty);     // a tap right on the ball beats the bowl behind it
             if (bowl != 0) { taps = 0; lastTapTarget = 2; gaze(tx, ty); feed(bowl, tx, ty); return; }
             if (decor.ballHit(tx, ty)) { taps = 0; lastTapTarget = 2; gaze(tx, ty); play(tx, ty); return; }
             if (brain.offscreenState()) return;
