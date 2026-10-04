@@ -112,6 +112,13 @@ final class Talk {
 
     private void endChat(float scale) { cur = null; nextTalk = time + (38f + rnd.nextFloat() * 70f) * scale; }
 
+    /** One line said right now by one pet (an immediate reaction to the user, e.g. refusing food). Interrupts a chat. */
+    void say(int who, char emo, String text) {
+        final TalkData.Pat p = new TalkData.Pat();
+        p.who = new byte[] { (byte) who }; p.emo = new byte[] { (byte) emo }; p.text = new String[] { text }; p.kind = TalkData.CHAT; p.id = -1;
+        cur = p; line = 0; gap = false; startLine();
+    }
+
     /** Stop everything (screen off, pet left the room ...). */
     void abort() { cur = null; on = false; nextTalk = time + 25f; }
 

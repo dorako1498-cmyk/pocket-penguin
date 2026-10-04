@@ -24,7 +24,8 @@ final class Brain {
     float gaitAmp, gaitPh, time;
     float targetX = -1f; boolean hasTarget;
     float touchX = -1f;
-    Care care; float careCool = 60f, ballCool = 90f;
+    Care care; float careCool = 60f, ballCool = 90f, boredCool = 120f;
+    int begGoal = Seqs.G_FOOD;                 // the bowl BEG_* sequences pace around
     float avoidX = -1f;                        // where the buddy lies: random wandering prefers other spots (it stands in front of the penguin)
 
     // ---- sequence player
@@ -146,6 +147,9 @@ final class Brain {
             case Seqs.G_TOUCH: targetX = clampRange(touchX < 0f ? w * .5f : touchX); break;
             case Seqs.G_EDGE: face = x < w * .5f ? -1 : 1; if (rnd.nextInt(5) == 0) face = -face; targetX = face > 0 ? w * 1.4f : -w * .4f; break;
             case Seqs.G_ENTER: targetX = w * (.30f + .4f * rnd.nextFloat()); break;
+            case Seqs.G_PACE: {                                       // a few steps to the other side of the bowl
+                final float bx = room.goalX(begGoal) * w, side = x < bx ? 1f : -1f;
+                targetX = clampRange(bx + side * w * (.06f + .04f * rnd.nextFloat())); break; }
             default: targetX = clampRange(room.goalX(goal) * w + (rnd.nextFloat() - .5f) * w * .03f); break;
         }
         hasTarget = true;
@@ -273,9 +277,19 @@ final class Brain {
         }
         // looking after itself: hungry / thirsty -> goes to the bowl (or waits next to an empty one), plays with the ball now and then
         if (care != null && !night && !charging && !lowBat) {
-            if (time > careCool && care.pHungry()) { careCool = time + 70f + rnd.nextFloat() * 60f; start(care.foodEmpty() ? Seqs.BEG_FOOD : Seqs.EAT_MEAL); return; }
-            if (time > careCool && care.pThirsty() && !care.waterEmpty()) { careCool = time + 70f + rnd.nextFloat() * 60f; start(Seqs.DRINK_WATER); return; }
-            if (time > ballCool && rnd.nextInt(5) == 0 && !asleepish()) { ballCool = time + 100f + rnd.nextFloat() * 140f; start(Seqs.BALL_PLAY); return; }
+            // an empty bowl is asked for again and again (the begging itself is short, so this does not take over the whole day)
+            if (time > careCool && care.pHungry()) {
+                if (care.foodEmpty()) { careCool = time + 45f + rnd.nextFloat() * 40f; begGoal = Seqs.G_FOOD; start(Seqs.BEG_FOOD); }
+                else { careCool = time + 70f + rnd.nextFloat() * 60f; start(Seqs.EAT_MEAL); }
+                return;
+            }
+            if (time > careCool && care.pThirsty()) {
+                if (care.waterEmpty()) { careCool = time + 50f + rnd.nextFloat() * 40f; begGoal = Seqs.G_WATER; start(Seqs.BEG_WATER); }
+                else { careCool = time + 70f + rnd.nextFloat() * 60f; start(Seqs.DRINK_WATER); }
+                return;
+            }
+            if (time > boredCool && care.pBored() && !asleepish()) { boredCool = time + 80f + rnd.nextFloat() * 70f; start(Seqs.WANT_PLAY); return; }
+            if (time > ballCool && rnd.nextInt(5) == 0 && !asleepish()) { ballCool = time + 100f + rnd.nextFloat() * 140f; care.cheer(.06f); start(Seqs.BALL_PLAY); return; }
         }
         final float[] W = weights;
         for (int i = 0; i < W.length; i++) W[i] = 0f;
@@ -310,6 +324,8 @@ final class Brain {
         // the user was just here
         if (petted) { W[Seqs.SEEK_ATTENTION] = 20f; W[Seqs.FLAP_HAPPY] += 12f; W[Seqs.JUMP_PLAY] += 6f; W[Seqs.SHY_MOMENT] += 3f; W[Seqs.EDGE_EXIT] = 0f; W[Seqs.SLIP] *= .3f; }
         else if (touched) { W[Seqs.SEEK_ATTENTION] = 9f; W[Seqs.WANDER] += 5f; }
+        // hungry, thirsty or bored: glances at the user more often in between
+        if (care != null && (care.pHungry() || care.pThirsty() || care.pBored())) { W[Seqs.SEEK_ATTENTION] += 10f; W[Seqs.FLAP_HAPPY] *= .5f; W[Seqs.JUMP_PLAY] *= .5f; }
         // do not repeat the same thing, respect cool-downs
         for (int i = 0; i <= Seqs.SHY_MOMENT; i++) {
             if (time < cool[i]) W[i] = 0f;

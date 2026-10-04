@@ -302,6 +302,7 @@ public class PenguinWallpaperService extends WallpaperService {
             if (brain.battery <= 20 && !brain.charging) b |= TalkData.LOWBAT;
             if (brain.battery >= 95) b |= TalkData.FULLBAT;
             final boolean ph = care.pHungry(), bh = care.bHungry(), th = care.pThirsty() || care.bThirsty();
+            if (care.pBored()) b |= TalkData.BORED;
             if (ph) b |= TalkData.P_HUNGRY; if (bh) b |= TalkData.B_HUNGRY; if (th) b |= TalkData.THIRSTY;
             if (((ph || bh) && care.foodEmpty()) || (th && care.waterEmpty())) b |= TalkData.EMPTY;
             if (care.recentlyFed(System.currentTimeMillis())) b |= TalkData.FED;
@@ -318,7 +319,8 @@ public class PenguinWallpaperService extends WallpaperService {
         }
 
         void updateTalk(float dt) {
-            if (!talkOn || !buddyOn) { if (talk.active()) talk.abort(); return; }
+            if (!talkOn) { if (talk.active()) talk.abort(); return; }
+            if (!buddyOn) { talk.update(dt, 0L, 0, false, 1f); return; }      // no chats without Jinbei, only the penguin's own reactions
             final long now = SystemClock.uptimeMillis();
             if (now - ctxMs > 1000L) { ctxMs = now; ctxBits = buildCtx(); }
             final boolean riding = buddy.riding();
@@ -357,14 +359,39 @@ public class PenguinWallpaperService extends WallpaperService {
         /** The user tapped a bowl: fill it and let the pets react. */
         void feed(int kind, float tx, float ty) {
             final long now = System.currentTimeMillis();
-            final boolean helpful = kind == 1 ? care.food < .9f : care.water < .9f;
+            final boolean helpful = kind == 1 ? care.food < .5f : care.water < .5f;
+            final boolean full = kind == 1 ? care.pStuffed() : care.pQuenched();
+            final boolean awake = !brain.offscreenState() && !brain.sleeping() && !brain.asleepish() && !brain.riding;
+            final float u = brain.u;
+            if (!helpful) {                                    // the bowl is still full: nothing to add
+                fx.spawn(Fx.PUFF, tx, ty - 10f * u, 0f, -30f * u, .5f, 20f * u);
+                if (full && awake && talkOn) { brain.face = tx > brain.x ? 1 : -1; brain.react(Seqs.R_REFUSE); talk.say(0, '\0', kind == 1 ? "まだ、ごはんのこってるよ〜" : "おみず、まだあるよ〜"); }
+                return;
+            }
             if (kind == 1) care.fillFood(now); else care.fillWater(now);
-            fx.spawn(Fx.SPARK, tx, ty - 30f * brain.u, 0f, -50f * brain.u, .9f, 26f * brain.u);
-            fx.spawn(Fx.HEART, tx + 20f * brain.u, ty - 30f * brain.u, 14f * brain.u, -60f * brain.u, 1.4f, 22f * brain.u);
-            if (!helpful) return;
+            fx.spawn(Fx.SPARK, tx, ty - 30f * u, 0f, -50f * u, .9f, 26f * u);
+            if (full) {                                        // filled, but the penguin is not hungry: says no thanks (Jinbei may still come)
+                if (awake) { brain.face = tx > brain.x ? 1 : -1; brain.react(Seqs.R_REFUSE); if (talkOn) talk.say(0, '\0', kind == 1 ? "もう、おなかいっぱい…あとでたべるね" : "いまは、のどかわいてないや"); talk.sticky(TalkData.FULL, 90f); }
+                if (buddyOn) buddy.onFilled(kind);
+                return;
+            }
+            fx.spawn(Fx.HEART, tx + 20f * u, ty - 30f * u, 14f * u, -60f * u, 1.4f, 22f * u);
+            care.cheer(.1f);
             talk.sticky(TalkData.FED, 100f); talk.kick(3f);
-            if (!brain.offscreenState() && !brain.sleeping() && !brain.riding) brain.react(kind == 1 ? Seqs.R_FED : Seqs.R_WATERED);
+            if (awake) brain.react(kind == 1 ? Seqs.R_FED : Seqs.R_WATERED);
             if (buddyOn) buddy.onFilled(kind);
+        }
+
+        /** The user tapped the ball: it rolls away and the penguin chases it (the best cure for a bored penguin). */
+        void play(float tx, float ty) {
+            decor.flickBall();
+            talk.sticky(TalkData.BALL, 60f); talk.kick(6f);
+            if (brain.offscreenState() || brain.sleeping() || brain.asleepish() || brain.riding) return;
+            final boolean wasBored = care.pBored();
+            care.played(System.currentTimeMillis());
+            fx.spawn(Fx.SPARK, tx, ty - 30f * brain.u, 0f, -50f * brain.u, .9f, 26f * brain.u);
+            if (wasBored) fx.spawn(Fx.HEART, headX(), headY() - 60f * brain.u, 12f * brain.u, -60f * brain.u, 1.5f, 26f * brain.u);
+            brain.react(Seqs.R_PLAY);
         }
 
         void handleBuddyRequest() {
@@ -410,7 +437,7 @@ public class PenguinWallpaperService extends WallpaperService {
                     lastX = ex; lastY = ey;
                     gaze(ex, ey);
                     if (enabled("tap") && zone == Z_HEAD && !brain.offscreenState() && pathLen > 26f * density) {
-                        if (!petting) { petting = true; brain.petting = true; brain.react(Seqs.R_PET); care.stroked(); talk.sticky(TalkData.PETTED, 90f); talk.kick(8f); }
+                        if (!petting) { petting = true; brain.petting = true; brain.react(Seqs.R_PET); care.stroked(); care.cheer(.15f); talk.sticky(TalkData.PETTED, 90f); talk.kick(8f); }
                         brain.lastPetAt = brain.time; brain.in.petDir = petDir;
                     }
                     if (enabled("tap") && bzone != Buddy.Z_NONE && pathLen > 26f * density) { buddyPetting = true; buddy.stroke(petDir); care.stroked(); talk.sticky(TalkData.PETTED, 90f); talk.kick(8f); }
@@ -451,17 +478,18 @@ public class PenguinWallpaperService extends WallpaperService {
             if (z == Z_NONE) {
                 final int bowl = decor.bowlHit(tx, ty);
                 if (bowl != 0) { feed(bowl, tx, ty); return; }
+                if (decor.ballHit(tx, ty)) { play(tx, ty); return; }
                 if (brain.sleeping() || brain.asleepish()) return;          // do not wake it by tapping the wall
                 brain.touchX = tx; brain.react(Seqs.R_TOUCH); taps = 0; return;
             }
             if (brain.sleeping() || brain.asleepish()) { brain.react(Seqs.R_WAKE); taps = 0; return; }
             if (z == Z_HEAD && taps >= 2) {            // tap, tap, tap on the head = stroking it (launchers often deliver taps only, no swipes)
                 brain.petUntil = brain.time + 1.6f; brain.in.petDir = (taps % 2 == 0) ? 1f : -1f;
-                if (brain.state != State.PET) brain.react(Seqs.R_PET);
+                if (brain.state != State.PET) { brain.react(Seqs.R_PET); care.cheer(.1f); }
                 return;
             }
             if (taps >= 3) { brain.react(Seqs.R_MULTI); taps = 0; return; }
-            if (z == Z_HEAD) brain.react(Seqs.R_HEAD_PAT);
+            if (z == Z_HEAD) { brain.react(Seqs.R_HEAD_PAT); care.cheer(.05f); }
             else if (z == Z_BELLY) brain.react(Seqs.R_BELLY);
             else { final int r = random.nextInt(4); brain.react(r == 0 ? Seqs.R_TAP_TILT : r == 1 ? Seqs.R_TAP_FLAP : r == 2 ? Seqs.R_TAP_JUMP : Seqs.R_GREET); }
         }

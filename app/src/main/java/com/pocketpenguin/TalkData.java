@@ -18,7 +18,8 @@ final class TalkData {
             SPRING = 1L << 21, SUMMER = 1L << 22, AUTUMN = 1L << 23, WINTER = 1L << 24,
             HALLOWEEN = 1L << 25, XMAS = 1L << 26, NEWYEAR = 1L << 27,
             PETTED = 1L << 28, RIDE_DONE = 1L << 29, BALL = 1L << 30,
-            RIDING = 1L << 31, SLEEP_P = 1L << 32, SLEEP_J = 1L << 33, D7 = 1L << 34, D30 = 1L << 35, D100 = 1L << 36, MOON = 1L << 37;
+            RIDING = 1L << 31, SLEEP_P = 1L << 32, SLEEP_J = 1L << 33, D7 = 1L << 34, D30 = 1L << 35, D100 = 1L << 36, MOON = 1L << 37,
+            BORED = 1L << 38, FULL = 1L << 39;   // BORED: the penguin's mood is low; FULL: it just refused food (sticky)
     static final int CHAT = 0, SLEEPTALK_P = 1, SLEEPTALK_J = 2, WHISPER = 3;
 
     static final class Pat {
@@ -203,6 +204,13 @@ final class TalkData {
         add(RIDE_DONE, 0, 0, 8, "P:ジンベエのせなか、ぼくのとくとうせきだ！|J:ペンちゃんせんようなの…|P*:やったー！");
 
         // ===================================================================== ball
+        // ===================================================================== mood / refusing food
+        add(BORED, 0, SLEEP_P, 12, "P:ねえねえ、ひま〜…|J:ひとに、あそんでもらったら…？|P:ボールをとんってしてくれないかなぁ|J:ちらっと、みてみるの…");
+        add(BORED, 0, SLEEP_P, 10, "P:なんだか、つまんないなぁ…|J:ペンちゃん、しょんぼりなの…|P:ボールであそびたい！|J:ひと、きづいてくれるかなぁ…");
+        add(BORED, 0, SLEEP_P, 9, "J:ペンちゃん、さっきから、ボールばっかりみてるの…|P:だって、あそびたいんだもん…|J:かわいいの…");
+        add(BORED, 0, SLEEP_P, 8, "P:ひとって、いま、いそがしいのかな…|J:きっと、あとで、きてくれるよ…|P:なでなでも、してほしいなぁ…");
+        add(FULL, 0, 0, 14, "P:もう、おなかいっぱいだよ〜|J:ペンちゃん、まんまるなの…|P:あとで、たべるね！|J:ぼくが、ちょっとたべてもいい…？");
+        add(FULL, 0, 0, 10, "J:ペンちゃん、ことわってたの…|P:さっき、たべたばっかりだもん|J:たべすぎは、よくないの…|P:ひと、ありがとうね！");
         add(BALL, 0, 0, 12, "P:ボール、いくよ！えいっ！|J:ころころ…とんでいったの…|P:つぎは、ジンベエのばん！|J:ぼくは、はなでおす…");
         add(BALL, 0, 0, 10, "J:ボール、まるくて、すきなの…|P:ぼくたちもまるいよね！|J:うん…まんまるなの…");
         add(BALL, 0, 0, 8, "P:ボール、ぜんぜん、とまらない！|J:ころころ、はしってる…|P:まてまて〜！|J:のんびり、おいかけるの…");

@@ -55,6 +55,14 @@ final class Decor {
         return 0;
     }
 
+    /** True when (x, y) is on or right around the ball (generous, it is small). */
+    boolean ballHit(float x, float y) {
+        final float by = room.groundY + h * .002f - ballH;
+        return Math.abs(x - room.ballX) < ballR * 2.6f && Math.abs(y - by) < ballR * 2.6f;
+    }
+    /** The user flicked the ball: it rolls away from the finger, towards the middle of the room. */
+    void flickBall() { kick(room.ballX < w * .5f ? 1 : -1, w * .55f); ballHv = h * .4f; }
+
     // ===================================================================== simulation
     void update(float dt, long nowMs, float penX, int penFace, boolean penMoving, boolean penKick, float budX, int budFace, boolean budMoving) {
         time += dt;
