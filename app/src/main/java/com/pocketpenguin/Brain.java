@@ -55,7 +55,7 @@ final class Brain {
 
     void layout(int ww, int hh) {
         w = ww; h = hh;
-        final float charH = Math.max(270f, Math.min(h * .255f, 470f));
+        final float charH = Math.max(210f, Math.min(h * .20f, 370f));   // ~20 % smaller than v0.10 so the room (and the ball) has more space
         u = charH / 735f;
         baseY = room.groundY + h * .035f;           // stand on the floor in front of the furniture row
         groundY = baseY; perch = 0;

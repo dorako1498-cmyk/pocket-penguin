@@ -25,7 +25,7 @@ final class Decor {
     Decor(Care care, Room room, int seenMask) { this.care = care; this.room = room; this.seen = seenMask; }
 
     void layout(int ww, int hh) {
-        w = ww; h = hh; ballR = w * .03f;
+        w = ww; h = hh; ballR = w * .037f;
         if (room.ballX < 0f || room.ballX > w) room.ballX = w * .445f;
     }
 
@@ -58,7 +58,7 @@ final class Decor {
     /** True when (x, y) is on or right around the ball (generous, it is small). */
     boolean ballHit(float x, float y) {
         final float by = room.groundY + h * .002f - ballH;
-        return Math.abs(x - room.ballX) < ballR * 2.6f && Math.abs(y - by) < ballR * 2.6f;
+        return Math.abs(x - room.ballX) < ballR * 3.2f && Math.abs(y - by) < ballR * 3.2f;
     }
     /** The user flicked the ball: it rolls away from the finger, towards the middle of the room. */
     void flickBall() { kick(room.ballX < w * .5f ? 1 : -1, w * .55f); ballHv = h * .4f; }
