@@ -32,8 +32,9 @@ final class Seqs {
             R_FETCH = 63, R_HIDE = 64, R_KICK = 65, R_POP = 66, R_YAWN = 67, R_BRUSH = 68, R_FOUND = 69,
             // v0.13: expressions, tricks, weather, outings
             R_WINK = 70, R_SMUG = 71, SNEEZE_SEQ = 72, TRICK_HAND = 73, TRICK_FLIP = 74, SUNBATHE = 75, R_TUMBLE = 76,
-            R_SOUVENIR = 77, R_SCARED = 78, R_BUILD = 79, R_GREET_BIG = 80, R_GREET_TOP = 81;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
-    static final int COUNT = 82;
+            R_SOUVENIR = 77, R_SCARED = 78, R_BUILD = 79, R_GREET_BIG = 80, R_GREET_TOP = 81,
+            R_PUNCH = 82, R_KICKHIT = 83, R_HIT = 84, R_KNOCK = 85;   // v0.14 fight moves   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
+    static final int COUNT = 86;
 
     static final Step[][] ALL = new Step[COUNT][];
 
@@ -178,6 +179,10 @@ final class Seqs {
         ALL[R_BUILD] = cat(go(G_TOUCH, State.WALK_FAST, 5000), a(st(State.LOOK_AT_FEET, 1600), st(State.EAT, 2600), st(State.LOOK_AT_FEET, 1400), st(State.EAT, 2400), st(State.JUMP, 1250), st(State.SMUG, 1800)));
         ALL[R_GREET_BIG] = a(st(State.GREETING_USER, 2000), st(State.VERY_HAPPY, 1300), st(State.SPIN, 1500), st(State.HAPPY, 700));
         ALL[R_GREET_TOP] = a(st(State.GREETING_USER, 1800), st(State.FLIP, 1700), st(State.VERY_HAPPY, 1200), st(State.WINK, 1000));
+        ALL[R_PUNCH] = a(st(State.PUNCH, 700), st(State.ANGRY, 300));
+        ALL[R_KICKHIT] = a(st(State.KICK, 750), st(State.ANGRY, 250));
+        ALL[R_HIT] = a(st(State.HIT, 700), st(State.ANGRY, 300));
+        ALL[R_KNOCK] = a(st(State.FALL, 1500), st(State.CONFUSED, 900), st(State.GET_UP, 1300));
         ALL[R_WAKE] = a(st(State.WAKE_UP, 1100), st(State.YAWN, 1000), st(State.LOOK_USER, 800));
     }
 
@@ -190,7 +195,7 @@ final class Seqs {
         "R_CHARGE_END", "R_TAP_JUMP", "R_TAP_FLAP", "R_TAP_TILT", "R_WAKE", "RIDE",
         "EAT_MEAL", "DRINK_WATER", "BEG_FOOD", "R_FED", "R_WATERED", "BALL_PLAY", "BEG_WATER", "WANT_PLAY", "R_PLAY", "R_REFUSE",
         "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP", "R_FETCH", "R_HIDE", "R_KICK", "R_POP", "R_YAWN", "R_BRUSH", "R_FOUND",
-        "R_WINK", "R_SMUG", "SNEEZE", "TRICK_HAND", "TRICK_FLIP", "SUNBATHE", "R_TUMBLE", "R_SOUVENIR", "R_SCARED", "R_BUILD", "R_GREET_BIG", "R_GREET_TOP" };
+        "R_WINK", "R_SMUG", "SNEEZE", "TRICK_HAND", "TRICK_FLIP", "SUNBATHE", "R_TUMBLE", "R_SOUVENIR", "R_SCARED", "R_BUILD", "R_GREET_BIG", "R_GREET_TOP", "R_PUNCH", "R_KICKHIT", "R_HIT", "R_KNOCK" };
 
     private Seqs() {}
 }

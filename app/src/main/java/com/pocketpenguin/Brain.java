@@ -211,6 +211,9 @@ final class Brain {
             case MULTI_TAP: vx += dodge * w * .075f * (t < dur * .8f ? 1f : .3f); break;
             case BELLY_TICKLE: if (t > 1.05f && t < 1.8f) vx += dodge * 70f * u; break;
             case GREETING_USER: break;
+            case PUNCH: if (t > .12f && t < .3f) vx += face * 300f * u; else if (t > .4f && t < .6f) vx -= face * 250f * u; break;
+            case KICK: if (t > .15f && t < .32f) vx += face * 180f * u; else if (t > .45f && t < .62f) vx -= face * 150f * u; break;
+            case HIT: if (t < .35f) vx -= face * 420f * u * (1f - t / .35f); break;   // knocked back
             default: break;
         }
         x += vx * dt;

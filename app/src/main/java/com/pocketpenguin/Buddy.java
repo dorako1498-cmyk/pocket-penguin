@@ -15,10 +15,11 @@ final class Buddy {
     // ---- states
     static final int SNOOZE = 0, STIR = 1, YAWN = 2, IDLE = 3, LOOK = 4, CRAWL = 5, SWIM = 6, WIGGLE = 7, ROLL = 8, BUBBLES = 9,
             SURPRISE = 10, PETTED = 11, TICKLE = 12, SHY = 13, CALL = 14, CHASE_TAIL = 15, DROWSY = 16, JOY_HOP = 17, EAT_B = 18, DRINK_B = 19, P_BALL = 20,   // P_BALL is only a pick, not a state
-            ANGRY_B = 21, SULK_B = 22, SAD_B = 23, DANCE_B = 24, LAUGH_B = 25, SCUFFLE_B = 26;   // emotions (v0.11), mostly cued by the engine
+            ANGRY_B = 21, SULK_B = 22, SAD_B = 23, DANCE_B = 24, LAUGH_B = 25, SCUFFLE_B = 26,   // emotions (v0.11), mostly cued by the engine
+            HEADBUTT_B = 27, FINSLAP_B = 28, HIT_B = 29;                                          // v0.14 fight moves
     static final String[] NAMES = { "SNOOZE", "STIR", "YAWN", "IDLE", "LOOK", "CRAWL", "SWIM", "WIGGLE", "ROLL", "BUBBLES", "SURPRISE",
             "PETTED", "TICKLE", "SHY", "CALL", "CHASE_TAIL", "DROWSY", "JOY_HOP", "EAT_B", "DRINK_B", "P_BALL",
-            "ANGRY_B", "SULK_B", "SAD_B", "DANCE_B", "LAUGH_B", "SCUFFLE_B" };
+            "ANGRY_B", "SULK_B", "SAD_B", "DANCE_B", "LAUGH_B", "SCUFFLE_B", "HEADBUTT_B", "FINSLAP_B", "HIT_B" };
     // ---- things it asks the penguin to do (the engine carries them out)
     static final int PEN_NONE = 0, PEN_GREET = 1, PEN_JUMP = 2, PEN_GOTO = 3, PEN_MOUNT = 4, PEN_DISMOUNT = 5, PEN_FLAP = 6;
     // ---- touch zones
@@ -327,6 +328,23 @@ final class Buddy {
                 tailT = 30f * (float) Math.sin(t * 13f); finT = 45f + 20f * ha;
                 nextFx -= dt; if (nextFx <= 0f) { nextFx = .45f; fx.spawn(Fx.SPARK, headX(), headY() - 30f * pu, face * 20f * pu, -60f * pu, .8f, 20f * pu); }
                 break; }
+            case HEADBUTT_B: {               // pull back, then ram forward with the snout, then back to the spot
+                moodFace = 1;
+                final float back = ph < .2f ? 1f : 0f, ram = ph >= .2f && ph < .42f ? 1f : 0f, ret = ph >= .5f && ph < .8f ? 1f : 0f;
+                vx = face * w * (.55f * ram - .18f * back - .38f * ret);
+                rotT = 8f * ram - 6f * back; sxT = 1f + .08f * ram; syT = 1f - .05f * ram; tailT = 30f * (float) Math.sin(t * 20f); finT = 50f; eyeT = 1.1f; moT = .3f * ram; blT = 1.3f;
+                break; }
+            case FINSLAP_B: {                // big swing of the pectoral fin (slap!)
+                moodFace = 1;
+                final float sw = ph < .25f ? -ph / .25f : ph < .45f ? (ph - .25f) / .2f * 2f - 1f : Math.max(0f, 1f - (ph - .45f) / .4f);
+                finT = 20f + 110f * Math.max(0f, sw) - 30f * Math.max(0f, -sw); rotT = -5f + 9f * Math.max(0f, sw); vx = face * w * .12f * (ph > .25f && ph < .45f ? 1f : ph > .55f && ph < .75f ? -1f : 0f);
+                tailT = 20f * (float) Math.sin(t * 15f); eyeT = 1.1f; moT = .2f; blT = 1.3f;
+                break; }
+            case HIT_B: {                    // got hit: pushed back, spinning eyes, wobble
+                moodFace = 3;
+                vx = ph < .4f ? -face * w * .32f * (1f - ph / .4f) : 0f;
+                rotT = -12f + 6f * (float) Math.sin(t * 28f); sxT = 1.05f; syT = .94f; tailT = 25f * (float) Math.sin(t * 22f); finT = 70f; moT = .35f; blT = 1.2f;
+                break; }
             case SCUFFLE_B: {                 // tussle: violent wobble (mostly hidden in the dust cloud)
                 moodFace = 1; final float j = (float) Math.sin(t * 29f), k2 = (float) Math.sin(t * 21f + 2f);
                 rotT = 15f * j; vx = face * w * .06f * k2; liftT = h * .015f * Math.abs(j); tailT = 40f * k2; finT = 60f + 30f * j; eyeT = 1.2f; moT = .4f; blT = 1.3f;
@@ -559,7 +577,10 @@ final class Buddy {
         final float e = eye.p;
         // cheek
         if (blush.p > .02f) { fill.setColor(0xFFF7BCB8); fill.setAlpha((int) (Math.min(1f, blush.p) * 190f)); rf.set(522f, 361f, 574f, 391f); c.drawOval(rf, fill); }
-        if (e < .2f) {   // closed eye: sleepy "︶" or happy "⌒"
+        if (moodFace == 3) {   // dizzy "×" eyes after a hit
+            line.setColor(0xFF101114); line.setAlpha(255); line.setStrokeWidth(8f);
+            c.drawLine(EYE_X - 16f, EYE_Y - 16f, EYE_X + 16f, EYE_Y + 16f, line); c.drawLine(EYE_X - 16f, EYE_Y + 16f, EYE_X + 16f, EYE_Y - 16f, line);
+        } else if (e < .2f) {   // closed eye: sleepy "︶" or happy "⌒"
             line.setColor(0xFF101114); line.setAlpha(255); line.setStrokeWidth(8f);
             rf.set(554f + lx * .6f, 318f, 614f + lx * .6f, 358f);
             if (smile.p > .62f) c.drawArc(rf, 200f, 140f, false, line); else c.drawArc(rf, 20f, 140f, false, line);

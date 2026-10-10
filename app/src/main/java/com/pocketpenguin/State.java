@@ -24,7 +24,9 @@ enum State {
     // v0.12: hiding (hide-and-seek, crouched behind the bed), brushing teeth
     HIDE, BRUSH,
     // v0.13: wink, smug (ドヤ顔), sneeze, handstand and somersault (tricks learnt with なつき度)
-    WINK, SMUG, SNEEZE, HANDSTAND, FLIP;
+    WINK, SMUG, SNEEZE, HANDSTAND, FLIP,
+    // v0.14: a real (cartoon) fight: wing punch, kick, getting hit
+    PUNCH, KICK, HIT;
 
     boolean isMove() {
         switch (this) {

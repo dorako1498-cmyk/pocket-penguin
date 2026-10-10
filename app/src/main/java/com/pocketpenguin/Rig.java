@@ -454,6 +454,24 @@ final class Rig {
                     if (cross(State.FLIP, t, prep + air)) events |= EV_LAND;
                 } else { final float u2 = t - prep - air, k = pulse(u2, 0f, .05f, .12f, .35f); T.sy = 1f - .24f * k; T.sx = 1f + .16f * k; T.expr = Expr.VERY_HAPPY; T.cheek = 1.3f; wings(30f * (1f - seg(u2, 0f, .4f))); }
                 break; }
+            case PUNCH: {                     // wind up, then a straight wing jab with a lunge
+                final float wind = pulse(t, 0f, .1f, .12f, .16f), jab = pulse(t, .12f, .2f, .34f, .5f);
+                T.expr = Expr.ANGRY; T.browL = T.browR = -1f; T.cheek = 1.5f; T.mouth = .35f * jab; T.turn = d * .8f;
+                T.rot += -d * 6f * wind + d * 12f * jab; T.bx += -d * 14f * wind + d * 46f * jab; T.hrot += d * 6f * jab;
+                final float front = -35f * wind + 125f * jab, back = -20f * jab;
+                if (d > 0) { T.wr = front; T.wl = back; } else { T.wl = front; T.wr = back; }
+                break; }
+            case KICK: {                      // lean back and kick with the front foot
+                final float crouch = pulse(t, 0f, .12f, .15f, .2f), kick = pulse(t, .15f, .24f, .4f, .6f);
+                T.expr = Expr.ANGRY; T.browL = T.browR = -1f; T.cheek = 1.5f; T.mouth = .3f * kick; T.turn = d * .8f;
+                T.sy -= .1f * crouch; T.rot += -d * 16f * kick; T.bx += d * 20f * kick; wings(45f * kick - 10f * crouch);
+                if (d > 0) { T.fxr += 120f * kick; T.fyr -= 80f * kick; } else { T.fxl -= 120f * kick; T.fyl -= 80f * kick; }
+                break; }
+            case HIT: {                       // got hit: knocked back, dazed, wings flailing
+                final float k = pulse(t, 0f, .05f, .3f, dur);
+                T.expr = Expr.DAZE; T.cheek = 1.5f; T.mouth = .35f * k;
+                T.rot += -d * 18f * k + 4f * sin(t * 30f) * k; T.bx += -d * 36f * k; T.sy -= .08f * k; T.sx += .05f * k; wings(70f * k + 20f * sin(t * 25f) * k); T.hrot += -d * 14f * k;
+                break; }
             default: break;
         }
 
