@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this); LinearLayout options = new LinearLayout(this); options.setOrientation(LinearLayout.VERTICAL); options.setPadding(4, 18, 4, 12);
         status = new TextView(this); status.setTextSize(17); status.setTextColor(0xff20333d); status.setTypeface(android.graphics.Typeface.MONOSPACE); status.setPadding(20, 16, 20, 16); status.setBackgroundColor(0xffe8f2f7);
         options.addView(status, new LinearLayout.LayoutParams(-1, -2));
-        addSwitch(options, "Tap reactions", "tap", true); addSwitch(options, "Jinbei (whale shark buddy)", "buddy", true); addSwitch(options, "Chat bubbles (the two talk to each other)", "talk", true); addSwitch(options, "Show every room item now (for trying them out)", "unlockall", false); addSwitch(options, "はやいお世話: 数分でおなかがすく (反応を見る用)", "carefast", true); addSwitch(options, "Look at the clock", "clock", true); addSwitch(options, "Charging reaction", "charging", true); addSwitch(options, "Wake when screen turns on", "screen", true); addSwitch(options, "Screen-edge door", "door", true); addSwitch(options, "Time-of-day room & weather", "time", true); addSwitch(options, "省電力 mode", "power", false); addScenePicker(options);
+        addSwitch(options, "Tap reactions", "tap", true); addSwitch(options, "Jinbei (whale shark buddy)", "buddy", true); addSwitch(options, "Chat bubbles (the two talk to each other)", "talk", true); addSwitch(options, "Show every room item now (for trying them out)", "unlockall", false); addSwitch(options, "はやいお世話: 数分でおなかがすく (反応を見る用)", "carefast", true); addSwitch(options, "Look at the clock", "clock", true); addSwitch(options, "Charging reaction", "charging", true); addSwitch(options, "Wake when screen turns on", "screen", true); addSwitch(options, "Screen-edge door", "door", true); addSwitch(options, "Time-of-day room & weather", "time", true); addSwitch(options, "省電力 mode", "power", false); addScenePicker(options); addBirthday(options);
         TextView label = new TextView(this); label.setText("Animation amount (calm / normal / lively)"); label.setTextSize(16); label.setTextColor(0xff20333d); options.addView(label);
         SeekBar speed = new SeekBar(this); speed.setMax(2); speed.setProgress(prefs.getInt("speed", 1)); speed.setContentDescription("Animation amount"); speed.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){ public void onProgressChanged(SeekBar b,int p,boolean f){prefs.edit().putInt("speed",p).apply();} public void onStartTrackingTouch(SeekBar b){} public void onStopTrackingTouch(SeekBar b){} }); options.addView(speed);
         TextView fl = new TextView(this); fl.setText("Floor height (raise it if the dock covers the penguin)"); fl.setTextSize(16); fl.setTextColor(0xff20333d); fl.setPadding(0, 18, 0, 0); options.addView(fl);
@@ -42,7 +42,7 @@ public class MainActivity extends Activity {
         options.addView(bsz);
         Button reset = new Button(this); reset.setText("Reset care and room items"); reset.setOnClickListener(v -> { SharedPreferences.Editor e = prefs.edit(); for (String k : new String[] { "care_first", "care_last", "care_pf", "care_ph", "care_bf", "care_bh", "care_food", "care_water", "care_feeds", "care_strokes", "care_fed", "care_pm", "care_play", "decor_seen" }) e.remove(k); e.apply(); showStatus(); });
         options.addView(reset, new LinearLayout.LayoutParams(-2, -2));
-        TextView tip = new TextView(this); tip.setText("Tip: tap the head once to greet, tap it again and again to stroke it. Tap the belly or tap fast to surprise it. Jinbei the whale shark naps a lot: tap or stroke it to wake it up. Tap the food or water bowl to refill it (one serving per meal; a full penguin says no thanks). When it gets bored it waits by the ball: tap the ball to play. New room items appear as the days go by."); tip.setTextSize(13); tip.setPadding(0, 14, 0, 0); options.addView(tip);
+        TextView tip = new TextView(this); tip.setText("Tip: tap the head once to greet, tap it again and again to stroke it. Tap the belly or tap fast to surprise it. Jinbei the whale shark naps a lot: tap or stroke it to wake it up. Tap the food or water bowl to refill it (one serving per meal; a full penguin says no thanks). When it gets bored it waits by the ball: tap the ball to play. Tap the floor to throw a fish (Jinbei may race for it!). Tap the two during a quarrel to make them stop, and tap the penguin when it hides behind the bed. New room items appear as the days go by."); tip.setTextSize(13); tip.setPadding(0, 14, 0, 0); options.addView(tip);
         scroll.addView(options); root.addView(scroll, new LinearLayout.LayoutParams(-1, 0, 1));
         Button launch = new Button(this); launch.setText("Set live wallpaper"); launch.setOnClickListener(v -> openWallpaperPicker()); root.addView(launch, new LinearLayout.LayoutParams(-1, -2));
         TextView note = new TextView(this); note.setText("An original little penguin lives in this room. It pauses when the wallpaper is hidden."); note.setTextSize(12); note.setPadding(8, 10, 8, 0); root.addView(note);
@@ -67,6 +67,27 @@ public class MainActivity extends Activity {
         final StringBuilder b = new StringBuilder();
         for (int i = 0; i < 10; i++) b.append(i < n ? '■' : '□');
         return b.toString();
+    }
+
+    /** Birthday (month / day): on that day a cake appears and the two hold a little party. */
+    private void addBirthday(LinearLayout box) {
+        TextView l = new TextView(this); l.setText("おたんじょうび (その日はケーキとパーティー)"); l.setTextSize(16); l.setTextColor(0xff20333d); l.setPadding(0, 18, 0, 0); box.addView(l);
+        LinearLayout row = new LinearLayout(this); row.setOrientation(LinearLayout.HORIZONTAL);
+        final String[] ms = new String[13]; ms[0] = "なし"; for (int i = 1; i <= 12; i++) ms[i] = i + "月";
+        final String[] ds = new String[31]; for (int i = 1; i <= 31; i++) ds[i - 1] = i + "日";
+        final Spinner m = new Spinner(this); m.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, ms));
+        final Spinner d = new Spinner(this); d.setAdapter(new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, ds));
+        m.setSelection(Math.max(0, prefs.getInt("bday_m", -1))); d.setSelection(Math.max(0, prefs.getInt("bday_d", 1) - 1));
+        m.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { prefs.edit().putInt("bday_m", pos == 0 ? -1 : pos).apply(); }
+            public void onNothingSelected(AdapterView<?> p) {}
+        });
+        d.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            public void onItemSelected(AdapterView<?> p, View v, int pos, long id) { prefs.edit().putInt("bday_d", pos + 1).apply(); }
+            public void onNothingSelected(AdapterView<?> p) {}
+        });
+        row.addView(m, new LinearLayout.LayoutParams(0, -2, 1)); row.addView(d, new LinearLayout.LayoutParams(0, -2, 1));
+        box.addView(row, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private void addScenePicker(LinearLayout box) {

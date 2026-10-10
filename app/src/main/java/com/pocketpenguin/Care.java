@@ -84,6 +84,9 @@ final class Care {
     boolean pThirsty() { return pHyd < .45f; }
     boolean bHungry() { return bFull < .5f; }
     boolean bThirsty() { return bHyd < .45f; }
+    /** A fish thrown by the user (a small snack, not a whole meal). */
+    void snackP() { pFull = Math.min(1f, pFull + .22f); cheer(.06f); save(); }
+    void snackB() { bFull = Math.min(1f, bFull + .22f); save(); }
     boolean pStuffed() { return pFull > .85f; }
     boolean pQuenched() { return pHyd > .85f; }
     boolean pBored() { return pMood < .4f; }

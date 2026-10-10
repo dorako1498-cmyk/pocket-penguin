@@ -19,6 +19,10 @@ final class Decor {
     private float time;
     // ---- ball
     float ballV, ballH, ballHv, ballRot; private float ballR, ballFloor;
+    // ---- a fish thrown onto the floor by the user (v0.12)
+    boolean treatOn; float treatX, treatH, treatHv, treatAge;
+    // ---- birthday cake (v0.12)
+    boolean cake;
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rf = new RectF(); private final Path path = new Path();
 
@@ -65,6 +69,12 @@ final class Decor {
     /** The ball rolls on a lane between the pets' feet and the bowls, so it is drawn in front of the pets and stays tappable. */
     private float ballFloorY() { return room.groundY + h * .066f; }
 
+    /** Drop a fish at x (it falls from a little above the floor and bounces once). */
+    void dropTreat(float x) { treatOn = true; treatX = Math.max(w * .15f, Math.min(w * .85f, x)); treatH = h * .14f; treatHv = 0f; treatAge = 0f; }
+    float treatFloorY() { return room.groundY + h * .052f; }
+    /** Kick the ball so that it rolls to about tx (ball pass game). */
+    void kickTo(float tx) { final float d = tx - room.ballX; ballV = 1.5f * d * 1.08f; if (ballH <= 0f) ballHv = h * .18f; }
+
     /** The user flicked the ball: it rolls away from the finger, towards the middle of the room. */
     void flickBall() { kick(room.ballX < w * .5f ? 1 : -1, w * .55f); ballHv = h * .4f; }
 
@@ -90,6 +100,12 @@ final class Decor {
         ballRot += ballV * dt / Math.max(1f, ballR) * 57.3f;
         if (ballH > 0f || ballHv > 0f) { ballHv -= h * 1.6f * dt; ballH += ballHv * dt; if (ballH <= 0f) { ballH = 0f; ballHv = Math.abs(ballHv) > h * .12f ? -ballHv * .35f : 0f; } }
         room.ballX = bx;
+        // thrown fish: falls, bounces, disappears after a while if nobody eats it
+        if (treatOn) {
+            treatAge += dt;
+            if (treatH > 0f || treatHv > 0f) { treatHv -= h * 1.8f * dt; treatH += treatHv * dt; if (treatH <= 0f) { treatH = 0f; treatHv = Math.abs(treatHv) > h * .1f ? -treatHv * .3f : 0f; } }
+            if (treatAge > 25f) treatOn = false;
+        }
     }
     private void kick(int dir, float speed) { ballV = dir * speed; if (ballH <= 0f) ballHv = h * .28f; }
     boolean ballMoving() { return Math.abs(ballV) > 5f; }
@@ -114,7 +130,16 @@ final class Decor {
     /** The two bowls in the foreground (drawn after the pets, so whoever eats stands behind the bowl). Bigger = closer to the viewer. */
     void drawBowls(Canvas c) {
         p.setStyle(Paint.Style.FILL); p.setShader(null); p.setAlpha(255);
+        if (cake) cake(c, w * .5f, room.groundY + h * .058f);
         ball(c);
+        if (treatOn) {
+            final float fy = treatFloorY(), a = Math.min(1f, (25f - treatAge) / .6f);
+            p.setAlpha((int) (255 * a));
+            oval(c, treatX - w * .035f, fy - h * .004f, treatX + w * .035f, fy + h * .006f, 0x30000000);
+            final float wig = treatH <= 0f ? 6f * (float) Math.sin(treatAge * 9f) * Math.max(0f, 1f - treatAge * .4f) : 0f;   // flops a little after landing
+            fish(c, treatX, fy - h * .009f - treatH, w * .075f, h * .019f, wig - 8f, treatX < w * .5f ? 1 : -1);
+            p.setAlpha(255);
+        }
         final float S = 1.4f, y0 = room.groundY + h * .004f;          // geometry below is drawn at the old floor line, then moved and scaled
         c.save(); c.translate(0f, room.bowlY - y0);
         for (int k = 1; k <= 2; k++) {
@@ -180,6 +205,23 @@ final class Decor {
         p.setColor(0xFFF28C5B); rf.set(bx - r, by - r, bx + r, by + r); c.drawArc(rf, 200f, 70f, true, p); c.drawArc(rf, 20f, 70f, true, p);
         p.setColor(0x66FFFFFF); c.drawCircle(bx - r * .35f, by - r * .4f, r * .25f, p);
         c.restore();
+    }
+
+    /** Birthday cake with flickering candles. */
+    private void cake(Canvas c, float x, float base) {
+        final float cw = w * .11f, ch = h * .03f;
+        oval(c, x - cw * .62f, base - h * .004f, x + cw * .62f, base + h * .008f, 0x30000000);
+        rr(c, x - cw * .5f, base - ch, x + cw * .5f, base, w * .01f, 0xFFFFF4E6);                                    // sponge
+        rr(c, x - cw * .52f, base - ch - h * .008f, x + cw * .52f, base - ch + h * .006f, w * .012f, 0xFFFFFFFF);    // cream
+        p.setColor(0xFFF46E8A); for (int i = 0; i < 5; i++) c.drawCircle(x - cw * .4f + i * cw * .2f, base - ch - h * .006f, w * .011f, p);   // strawberries
+        rr(c, x - cw * .5f, base - ch * .45f, x + cw * .5f, base - ch * .3f, 0f, 0xFFF8B9C6);
+        for (int i = -1; i <= 1; i++) {
+            final float cx = x + i * cw * .22f, top = base - ch - h * .028f;
+            rr(c, cx - w * .004f, top, cx + w * .004f, base - ch - h * .006f, w * .002f, i == 0 ? 0xFF8FC7F0 : 0xFFFFC34D);
+            final float fl = 1f + .2f * (float) Math.sin(time * 13f + i * 2f);
+            oval(c, cx - w * .006f * fl, top - h * .012f * fl, cx + w * .006f * fl, top + h * .001f, 0xFFFFB238);
+            oval(c, cx - w * .003f, top - h * .007f, cx + w * .003f, top, 0xFFFFF3B0);
+        }
     }
 
     private void poster(Canvas c) {

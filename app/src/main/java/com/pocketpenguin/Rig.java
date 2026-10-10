@@ -56,6 +56,7 @@ final class Rig {
     final Spring eyeS = new Spring(10f, .6f, 1f), footS = new Spring(8f, .7f, 1f);
     Expr expr = Expr.NORMAL;
     int events;
+    boolean boots;                   // rainy day: yellow rain boots over the feet
 
     private final Tg T = new Tg();
     private final Random rnd = new Random();
@@ -417,6 +418,13 @@ final class Rig {
                 final float j = sin(t * 31f), k2 = sin(t * 23f + 1f);
                 T.expr = ((int) (t * 5f)) % 3 == 0 ? Expr.DAZE : Expr.ANGRY; T.browL = T.browR = -1f; T.cheek = 1.5f;
                 T.rot += 14f * j; T.bx += 14f * k2; T.by -= 10f * abs(j); wings(50f + 40f * k2); T.hrot += 10f * k2; T.mouth = .3f; break; }
+            case HIDE: {                      // crouched low behind the bed, peeking up now and then
+                sit(1f); T.sy -= .12f; T.hy += 34f; wings(-6f);
+                final float pk = pulse(t % 3.2f, 1.6f, 1.9f, 2.5f, 2.9f);
+                T.hy -= 46f * pk; T.expr = pk > .3f ? Expr.CURIOUS : Expr.SHY; T.lookX = d * .6f * pk; T.cheek = 1.3f; break; }
+            case BRUSH: {                     // brushing teeth: one wing up at the beak scrubbing, foam (the brush itself is drawn by the engine)
+                final float sc = sin(t * 16f);
+                T.wr = 105f + 10f * sc; T.wl = 6f; T.hrot += 3f * sc; T.mouth = .28f; T.expr = Expr.HAPPY; T.cheek = 1.1f; T.by -= abs(sc) * 2f; break; }
             default: break;
         }
 
@@ -531,6 +539,7 @@ final class Rig {
         part(c, a.footL, PartLayout.PG_FOOT_L_L, PartLayout.PG_FOOT_L_T); c.restore();
         c.save(); c.translate(fxr.p, fyr.p); c.scale(footS.p, footS.p, 394f, 750f);
         part(c, a.footR, PartLayout.PG_FOOT_R_L, PartLayout.PG_FOOT_R_T); c.restore();
+        if (boots) { boot(c, 246f + fxl.p, 742f + fyl.p, alpha); boot(c, 394f + fxr.p, 742f + fyr.p, alpha); }
 
         // wings pivot at the shoulders
         c.save(); c.rotate(wl.p, SHOULDER_LX, SHOULDER_Y);
@@ -549,6 +558,13 @@ final class Rig {
         c.restore();   // body group
         bm.setAlpha(255);
         c.restore();
+    }
+
+    private void boot(Canvas c, float cx, float cy, int alpha) {
+        mouthP.setColor(0xFFFFCB2E); mouthP.setAlpha(alpha); rf.set(cx - 62f, cy - 44f, cx + 62f, cy + 34f); c.drawRoundRect(rf, 30f, 30f, mouthP);
+        mouthP.setColor(0xFFE0A21A); rf.set(cx - 64f, cy + 18f, cx + 64f, cy + 36f); c.drawRoundRect(rf, 9f, 9f, mouthP);    // sole
+        mouthP.setColor(0x88FFFFFF); rf.set(cx - 40f, cy - 36f, cx - 16f, cy - 4f); c.drawOval(rf, mouthP);
+        mouthP.setColor(0xFF6B2B30);
     }
 
     private void drawFace(Canvas c, PenguinArt a, int alpha) {

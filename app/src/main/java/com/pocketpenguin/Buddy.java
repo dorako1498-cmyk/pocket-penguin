@@ -24,7 +24,7 @@ final class Buddy {
     // ---- touch zones
     static final int Z_NONE = 0, Z_HEAD = 1, Z_BELLY = 2, Z_TAIL = 3, Z_BODY = 4;
     // ---- shared-moment phases
-    private static final int D_NONE = 0, D_GO = 1, D_LINGER = 2, D_CALL = 3, D_WAIT = 4, D_MOUNT = 5, D_CARRY = 6, D_NAPGO = 7, D_EAT = 8, D_DRINK = 9, D_BEG = 10;
+    private static final int D_NONE = 0, D_GO = 1, D_LINGER = 2, D_CALL = 3, D_WAIT = 4, D_MOUNT = 5, D_CARRY = 6, D_NAPGO = 7, D_EAT = 8, D_DRINK = 9, D_BEG = 10, D_TREAT = 11;
     private static final int K_VISIT = 0, K_BUMP = 1, K_RIDE = 2;
 
     private static final float GROUND = 500f, CX = 400f, EYE_X = 584f, EYE_Y = 338f;
@@ -53,6 +53,7 @@ final class Buddy {
     boolean ateLast;              // set when Jinbei just emptied the food bowl (the engine may let the penguin get angry)
     private int wantEat;          // 1 food / 2 water: woke up because of the bowl, go there right after the yawn
     private int moodFace;         // 0 normal, 1 angry brows + frown, 2 sad brows + frown
+    boolean eatingTreat; float treatX;   // v0.12: going for / eating a fish the user threw (not the bowl)
 
     // ---- animation springs (art units unless noted)
     private final Spring sx = new Spring(3.2f, .5f, 1f), sy = new Spring(3.2f, .5f, 1f), rot = new Spring(2.4f, .45f), tail = new Spring(2.8f, .3f),
@@ -111,7 +112,7 @@ final class Buddy {
             case SURPRISE: fx.spawn(Fx.EXCL, headX(), headY() - 40f * pu, 0f, -45f * pu, 1.1f, 42f * pu); break;
             case CALL: fx.spawn(Fx.EXCL, headX(), headY() - 40f * pu, 0f, -45f * pu, 1.2f, 42f * pu); break;
             case CHASE_TAIL: spinPh = 0f; break;
-            case EAT_B: if (care != null) { final boolean had = !care.foodEmpty(); care.eatB(); ateLast = had && care.foodEmpty(); } break;
+            case EAT_B: if (care != null && !eatingTreat) { final boolean had = !care.foodEmpty(); care.eatB(); ateLast = had && care.foodEmpty(); } break;
             case DRINK_B: if (care != null) care.drinkB(); break;
             case STIR: case WIGGLE: case JOY_HOP: case TICKLE: break;
             default: break;
@@ -184,9 +185,20 @@ final class Buddy {
         if (faceDir != 0) face = faceDir;
         go(s, d);
     }
+    /** A fish landed on the floor: swim over (snout over it). The engine decides who gets it. */
+    void goTreat(float tx) {
+        if (riding() || asleep || hold) return;
+        duoAbort(); treatX = tx; eatingTreat = false; duo = D_TREAT; goTo(bowlSpot(tx), true, 7f);
+    }
+    /** Somebody else got the fish first. */
+    void lostTreat() { if (duo == D_TREAT || eatingTreat) { duo = D_NONE; eatingTreat = false; hasGoal = false; go(SAD_B, 2.4f); } }
+    boolean wantsTreat() { return duo == D_TREAT || eatingTreat; }
+
     /** Swim quickly to gx (running away in a game of tag). */
     void flee(float gx) { if (riding()) return; duoAbort(); asleep = false; awakeUntil = Math.max(awakeUntil, time + 60f); goTo(gx, true, 5f); vel = face * w * .1f; }
     float leftLimit() { return w * .30f; }
+    /** Bedtime: yawn, get drowsy, sleep. */
+    void goSleep() { if (riding()) return; duoAbort(); hold = false; sleepNext = true; awakeUntil = time; go(YAWN, 2.2f); }
     float rightLimit() { return w * .70f; }
 
     void userTouchedPenguin() { if (!asleep && duo == D_NONE && (state == IDLE || state == LOOK) && rnd.nextInt(3) == 0) { faceToward(penX); go(LOOK, 1.8f); lookGoal = 1f; } }
@@ -403,7 +415,7 @@ final class Buddy {
         if (hold && !asleep) { go(IDLE, .6f); return; }
         if (duo != D_NONE && duoThink()) return;
         if (!asleep && ballChain > 0 && (state == SWIM || state == CRAWL)) { ballChain--; if (ballX >= 0f) { chaseBall(); return; } }
-        if (state == EAT_B || state == DRINK_B) { go(WIGGLE, 1.5f); return; }
+        if (state == EAT_B || state == DRINK_B) { eatingTreat = false; go(WIGGLE, 1.5f); return; }
         final boolean night = hour >= 23 || hour < 6;
         // a hungry sleeper wakes up when there is something in the bowl
         if (asleep && !night && care != null && time > careCool && !penRiding) {
@@ -497,6 +509,7 @@ final class Buddy {
                 go(WIGGLE, 1.9f); return true;
             case D_EAT: duo = D_NONE; faceToward(w * Room.FOOD_X); go(EAT_B, 3.8f); return true;
             case D_DRINK: duo = D_NONE; faceToward(w * Room.WATER_X); go(DRINK_B, 3.2f); return true;
+            case D_TREAT: duo = D_NONE; faceToward(treatX); eatingTreat = true; go(EAT_B, 2.4f); return true;
             case D_BEG: duo = D_NONE; faceToward(w * Room.FOOD_X); go(rnd.nextBoolean() ? SAD_B : CALL, 2.6f); return true;
             case D_NAPGO: duo = D_NONE; sleepNext = true; go(YAWN, 2.2f); return true;
             default: duo = D_NONE; return false;
@@ -514,7 +527,8 @@ final class Buddy {
         c.drawOval(rf, shadow);
         c.save();
         c.translate(x, baseY - liftPx);
-        c.scale(ub * faceF.p, ub);
+        final float ff = Math.abs(faceF.p) < .16f ? (faceF.p < 0f ? -.16f : .16f) : faceF.p;   // a near-zero width showed a thin gap between the parts
+        c.scale(ub * ff, ub);
         c.translate(-CX, -GROUND);
         c.rotate(rot.p, CX, 335f);
         c.scale(sx.p, sy.p, CX, GROUND);

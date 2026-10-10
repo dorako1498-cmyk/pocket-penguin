@@ -131,7 +131,7 @@ final class Brain {
             case MULTI_TAP: dodge = x < w * .5f ? 1f : -1f; break;
             case BELLY_TICKLE: dodge = x < w * .5f ? 1f : -1f; break;
             case EXIT_SCREEN: exitFace = face; break;
-            case EAT: if (care != null && Math.abs(x - room.goalX(Seqs.G_FOOD) * w) < w * .12f) care.eatP(); break;
+            case EAT: if (care != null && seqId != Seqs.R_FETCH && Math.abs(x - room.goalX(Seqs.G_FOOD) * w) < w * .12f) care.eatP(); break;
             case DRINK: if (care != null && Math.abs(x - room.goalX(Seqs.G_WATER) * w) < w * .12f) care.drinkP(); break;
             case WAKE_UP: wokeAt = time; break;
             default: break;
@@ -144,7 +144,7 @@ final class Brain {
             case Seqs.G_RANDOM: {
                 float tx = w * (.22f + .56f * rnd.nextFloat());
                 if (Math.abs(tx - x) < w * .16f) tx = x < w * .5f ? x + w * .22f : x - w * .22f;
-                for (int tries = 0; tries < 4 && avoidX >= 0f && Math.abs(tx - avoidX) < w * .2f; tries++) tx = w * (.2f + .6f * rnd.nextFloat());
+                for (int tries = 0; tries < 8 && avoidX >= 0f && Math.abs(tx - avoidX) < w * .25f; tries++) tx = w * (.18f + .64f * rnd.nextFloat());
                 targetX = clampRange(tx); break; }
             case Seqs.G_TOUCH: targetX = clampRange(touchX < 0f ? w * .5f : touchX); break;
             case Seqs.G_EDGE: face = x < w * .5f ? -1 : 1; if (rnd.nextInt(5) == 0) face = -face; targetX = face > 0 ? w * 1.4f : -w * .4f; break;
@@ -238,7 +238,7 @@ final class Brain {
 
     private void updateFeet(float dt) {
         final boolean settle = state == State.SIT || state == State.SLEEP || state == State.SLEEPY || state == State.NOD_OFF
-                || state == State.YAWN || state == State.WAKE_UP || state == State.REST_WHILE_CHARGING;
+                || state == State.YAWN || state == State.WAKE_UP || state == State.REST_WHILE_CHARGING || state == State.HIDE;
         final float dc = Math.abs(x - room.cushionX), db = Math.abs(x - room.bedX);
         if (state.isMove() || offscreenState() || (dc > w * .11f && db > w * .13f)) perch = 0;       // left the furniture
         else if (perch == 0 && settle && !front) { if (dc < w * .09f) perch = 1; else if (db < w * .10f) perch = 2; }
@@ -314,6 +314,8 @@ final class Brain {
             if (time > moodCool && care.pMood > .8f && rnd.nextInt(4) == 0) { moodCool = time + 70f + rnd.nextFloat() * 80f; start(rnd.nextInt(3) == 0 ? Seqs.R_LAUGH : Seqs.DANCE_SEQ); return; }
             if (time > ballCool && rnd.nextInt(5) == 0 && !asleepish()) { ballCool = time + 100f + rnd.nextFloat() * 140f; care.cheer(.06f); start(Seqs.BALL_PLAY); return; }
         }
+        // standing right in front of Jinbei hides it: step aside now and then
+        if (avoidX >= 0f && Math.abs(x - avoidX) < w * .14f && rnd.nextInt(3) != 0) { start(Seqs.WANDER); return; }
         final float[] W = weights;
         for (int i = 0; i < W.length; i++) W[i] = 0f;
 

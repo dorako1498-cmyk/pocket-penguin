@@ -27,8 +27,10 @@ final class Seqs {
             BEG_WATER = 48, WANT_PLAY = 49, R_PLAY = 50, R_REFUSE = 51,
             // emotions + shared scenes with Jinbei (v0.11; the scenes are directed by the engine, see PenguinWallpaperService.Drama)
             R_ANGRY = 52, R_SULK = 53, R_SAD = 54, R_CRY = 55, R_LAUGH = 56, DANCE_SEQ = 57, R_SCUFFLE = 58,
-            R_APPROACH = 59, R_CHASE = 60, HOLD = 61, R_MAKEUP = 62;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
-    static final int COUNT = 63;
+            R_APPROACH = 59, R_CHASE = 60, HOLD = 61, R_MAKEUP = 62,
+            // v0.12: fetching a thrown fish, hide-and-seek, kicking the ball to Jinbei, popping bubbles, yawning, brushing teeth, found!
+            R_FETCH = 63, R_HIDE = 64, R_KICK = 65, R_POP = 66, R_YAWN = 67, R_BRUSH = 68, R_FOUND = 69;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
+    static final int COUNT = 70;
 
     static final Step[][] ALL = new Step[COUNT][];
 
@@ -153,6 +155,14 @@ final class Seqs {
         ALL[R_CHASE] = a(st(State.START_WALK, 180, G_TOUCH), st(State.RUN, 3000, G_KEEP), st(State.STOP_WALK, 300), st(State.EXCITED, 900));
         ALL[HOLD] = a(st(State.BREATHE, 700));
         ALL[R_MAKEUP] = a(st(State.SHY, 1600), st(State.VERY_HAPPY, 1900), st(State.HAPPY, 900));
+        ALL[R_FETCH] = a(st(State.EXCITED, 500), st(State.START_WALK, 180, G_TOUCH), st(State.RUN, 3500, G_KEEP), st(State.STOP_WALK, 250),
+                st(State.EAT, 1900), st(State.HAPPY, 900), st(State.LOOK_USER, 600));
+        ALL[R_HIDE] = a(st(State.LOOK_USER, 600), st(State.START_WALK, 200, G_BED), st(State.WALK_FAST, 5000, G_KEEP), st(State.STOP_WALK, 250), st(State.HIDE, 30000));
+        ALL[R_KICK] = a(st(State.FLAP, 700), st(State.HAPPY, 500));
+        ALL[R_POP] = a(st(State.EXCITED, 500), st(State.JUMP, 1250), st(State.JUMP, 1250), st(State.HAPPY, 600), st(State.JUMP, 1250), st(State.VERY_HAPPY, 1200));
+        ALL[R_YAWN] = a(st(State.YAWN, 1600), st(State.BLINK, 300));
+        ALL[R_BRUSH] = a(st(State.BRUSH, 5000), st(State.HAPPY, 700));
+        ALL[R_FOUND] = a(st(State.SURPRISED, 600), st(State.LAUGH, 2000), st(State.HAPPY, 600));
         ALL[R_WAKE] = a(st(State.WAKE_UP, 1100), st(State.YAWN, 1000), st(State.LOOK_USER, 800));
     }
 
@@ -164,7 +174,7 @@ final class Seqs {
         "R_HEAD_PAT", "R_BELLY", "R_MULTI", "R_PET", "R_GREET", "R_WAKE_GREET", "R_TOUCH", "R_CHARGE_START",
         "R_CHARGE_END", "R_TAP_JUMP", "R_TAP_FLAP", "R_TAP_TILT", "R_WAKE", "RIDE",
         "EAT_MEAL", "DRINK_WATER", "BEG_FOOD", "R_FED", "R_WATERED", "BALL_PLAY", "BEG_WATER", "WANT_PLAY", "R_PLAY", "R_REFUSE",
-        "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP" };
+        "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP", "R_FETCH", "R_HIDE", "R_KICK", "R_POP", "R_YAWN", "R_BRUSH", "R_FOUND" };
 
     private Seqs() {}
 }

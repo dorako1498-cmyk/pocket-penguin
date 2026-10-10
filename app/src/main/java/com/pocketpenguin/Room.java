@@ -237,6 +237,17 @@ final class Room {
             // staggered board ends between this seam and the previous one
             final float kk = ((prevY + yj) * .5f - vpy) / (wallBottom - vpy);
             for (int i = -7; i <= 7; i += 2) { final float xb = vpx + (i + (j % 2)) * w * .085f * kk + w * .0425f * kk; c.drawLine(xb, prevY, xb, yj, p); }
+            // a few soft grain streaks inside each board row
+            final float rowH = yj - prevY;
+            p.setColor(0x14804A22);
+            for (int i = -7; i <= 7; i++) {
+                final int hsh = (i * 73 + j * 31) & 7;
+                if (hsh > 4) continue;
+                final float kk2 = ((prevY + yj) * .5f - vpy) / (wallBottom - vpy);
+                final float gx = vpx + (i + .3f + hsh * .08f) * w * .085f * kk2, gy = prevY + rowH * (.3f + hsh * .1f);
+                rf.set(gx - w * .03f * kk2, gy - rowH * .06f, gx + w * .03f * kk2, gy + rowH * .06f); c.drawOval(rf, p);
+            }
+            p.setColor(0x1FA06B3C);
             prevY = yj;
         }
         // contact shadow along the wall and a soft darkening towards the screen edges (gives the room some depth)
@@ -382,9 +393,33 @@ final class Room {
             p.setColor(lerpC(k.top, k.bot, .35f)); p.setAlpha((int) (255 * k.moonA)); c.drawCircle(mx + r * .5f, my - r * .22f, r * .9f, p);
             p.setAlpha(255);
         }
+        // birds crossing by day (a small flock every now and then)
+        if (k.sunA > .5f && k.rain < .1f) {
+            final float cyc = (time % 38f) / 9f;                     // crosses during the first 9 s of every 38 s
+            if (cyc < 1f) {
+                p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(Math.max(2f, w * .0035f)); p.setStrokeCap(Paint.Cap.ROUND); p.setColor(0xFF4A5566);
+                for (int b = 0; b < 3; b++) {
+                    final float bx = winL + (cyc * 1.3f - .15f - b * .07f) * pw, by = winT + ph * (.32f + b * .06f) + (float) Math.sin(time * 3f + b) * ph * .02f;
+                    final float fl = (float) Math.sin(time * 14f + b * 1.3f) * w * .006f, s = w * .012f;
+                    path.reset(); path.moveTo(bx - s, by - fl); path.quadTo(bx - s * .4f, by - s * .5f, bx, by); path.quadTo(bx + s * .4f, by - s * .5f, bx + s, by - fl); c.drawPath(path, p);
+                }
+                p.setStyle(Paint.Style.FILL);
+            }
+        }
+        // shooting star at night
+        if (k.stars > .3f) {
+            final float cyc = (time % 23f) / 1.1f;
+            if (cyc < 1f) {
+                final float sx0 = winL + pw * (.85f - .6f * cyc), sy0 = winT + ph * (.12f + .35f * cyc);
+                p.setColor(0xFFFFFFFF); p.setStrokeWidth(Math.max(2f, w * .004f)); p.setStrokeCap(Paint.Cap.ROUND);
+                p.setAlpha((int) (230 * Math.sin(Math.PI * cyc) * k.stars));
+                c.drawLine(sx0, sy0, sx0 + pw * .12f, sy0 - ph * .07f, p);
+                p.setAlpha(255);
+            }
+        }
         // clouds
         if (k.clouds > .02f) {
-            final int cc = lerpC(0xFFFFFFFF, 0xFF6C7683, k.cloudDark);
+            final int cc = lerpC(lerpC(0xFFFFFFFF, 0xFFFFC9A0, k.sunY > .6f && k.sunA > .5f ? .7f : 0f), 0xFF6C7683, k.cloudDark);   // sunset: peachy clouds
             for (int i = 0; i < NCLOUD; i++) {
                 if (i >= 1 + (int) (k.clouds * 3.01f)) break;
                 final float x0 = winL + cx[i] * pw, y0 = winT + cy[i] * ph, s = w * .045f * cs[i];
@@ -473,9 +508,20 @@ final class Room {
     }
 
     /** Colour grade + lamp glow + charger glow (drawn after the penguin so the whole scene is lit consistently). */
+    /**
+     * Colour grade, first pass (drawn BEFORE the pets): the room gets most of the evening / night tint here,
+     * the pets only get the lighter second pass in drawFront, so Jinbei's blue does not sink into the night colour.
+     */
+    void drawTint(Canvas c) {
+        final float A = cur.tintA; if (A <= .005f) return;
+        final float a2 = A * PET_TINT, a1 = 1f - (1f - A) / (1f - a2);
+        if (a1 > .003f) c.drawColor((((int) (255 * a1)) << 24) | (cur.tint & 0xFFFFFF));
+    }
+    private static final float PET_TINT = .45f;
+
     void drawFront(Canvas c) {
         final Look k = cur;
-        if (k.tintA > .005f) { c.drawColor((((int) (255 * k.tintA)) << 24) | (k.tint & 0xFFFFFF)); }
+        if (k.tintA > .005f) { c.drawColor((((int) (255 * k.tintA * PET_TINT)) << 24) | (k.tint & 0xFFFFFF)); }
         if (k.lamp > .02f && lampGlow != null) {
             final float flick = 1f + .035f * Rig.sin(time * 5.3f) * Rig.sin(time * 1.9f);
             lampM.setTranslate(lampX - w * .02f, lampY + h * .04f); lampGlow.setLocalMatrix(lampM);

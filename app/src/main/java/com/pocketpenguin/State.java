@@ -20,7 +20,9 @@ enum State {
     // screen edge
     EXIT_SCREEN, OFF_SCREEN, PEEK_FROM_EDGE, ENTER_SCREEN,
     // emotions (v0.11): anger, sulking (back turned), sadness, crying, laughing, dancing, a cartoon scuffle
-    ANGRY, SULK, SAD, CRY, LAUGH, DANCE, SCUFFLE;
+    ANGRY, SULK, SAD, CRY, LAUGH, DANCE, SCUFFLE,
+    // v0.12: hiding (hide-and-seek, crouched behind the bed), brushing teeth
+    HIDE, BRUSH;
 
     boolean isMove() {
         switch (this) {
