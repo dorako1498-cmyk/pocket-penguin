@@ -138,9 +138,9 @@ final class Decor {
         final float bw = w * .055f, lv = Math.max(0f, Math.min(1f, care.food));
         if (lv <= .04f) return;
         final int n = Math.max(1, Math.round(lv * 5f));                  // 1 .. 5 fish
-        final float fl = bw * .62f, fh = h * .0085f;                        // fish length / height
+        final float fl = bw * .82f, fh = h * .0115f;                        // fish length / height
         // back row first, front row last; slightly different angles so the pile looks natural
-        final float[] ox = { -.30f, .28f, .0f, -.18f, .22f }, oy = { -.0125f, -.0115f, -.0075f, -.017f, -.016f }, ang = { -12f, 14f, 4f, -24f, 20f };
+        final float[] ox = { -.30f, .28f, .0f, -.16f, .20f }, oy = { -.0135f, -.0125f, -.0080f, -.0195f, -.0185f }, ang = { -12f, 14f, 4f, -24f, 20f };
         final int[] order = { 3, 4, 0, 1, 2 };
         for (int k = 0; k < order.length; k++) {
             final int i = order[k]; if (i >= n) continue;
