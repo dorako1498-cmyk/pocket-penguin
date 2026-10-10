@@ -133,16 +133,34 @@ final class Decor {
         oval(c, x - bw * .78f, y - h * .021f, x + bw * .78f, y - h * .003f, dark);                  // inside (empty)
     }
 
+    /** Little fish piled in the bowl: the fuller the bowl, the more fish (they stick out over the rim a bit). */
     private void food(Canvas c, float fx, float y) {
         final float bw = w * .055f, lv = Math.max(0f, Math.min(1f, care.food));
-        if (lv > .04f) {
-            final float top = y - h * .003f - (h * .004f + h * .02f * lv);
-            oval(c, fx - bw * .7f, top, fx + bw * .7f, y - h * .003f, 0xFF8A5B38);
-            p.setColor(0xFF9C6B45);
-            final int n = (int) (3 + lv * 9);
-            for (int i = 0; i < n; i++) { final float kx = fx - bw * .55f + (i * 37 % 11) / 10f * bw * 1.1f, ky = top + h * .003f + ((i * 13) % 5) * h * .0018f; c.drawCircle(kx, ky, w * .0082f, p); }
-            p.setColor(0x55FFFFFF); c.drawCircle(fx - bw * .2f, top + h * .002f, w * .004f, p);
+        if (lv <= .04f) return;
+        final int n = Math.max(1, Math.round(lv * 5f));                  // 1 .. 5 fish
+        final float fl = bw * .62f, fh = h * .0085f;                        // fish length / height
+        // back row first, front row last; slightly different angles so the pile looks natural
+        final float[] ox = { -.30f, .28f, .0f, -.18f, .22f }, oy = { -.0125f, -.0115f, -.0075f, -.017f, -.016f }, ang = { -12f, 14f, 4f, -24f, 20f };
+        final int[] order = { 3, 4, 0, 1, 2 };
+        for (int k = 0; k < order.length; k++) {
+            final int i = order[k]; if (i >= n) continue;
+            fish(c, fx + ox[i] * bw, y + oy[i] * h, fl, fh, ang[i], (i & 1) == 0 ? 1 : -1);
         }
+    }
+    private void fish(Canvas c, float cx, float cy, float len, float ht, float deg, int dir) {
+        c.save(); c.rotate(deg, cx, cy); c.scale(dir, 1f, cx, cy);
+        // tail
+        path.reset(); path.moveTo(cx - len * .38f, cy); path.lineTo(cx - len * .62f, cy - ht * .75f); path.lineTo(cx - len * .58f, cy); path.lineTo(cx - len * .62f, cy + ht * .75f); path.close();
+        p.setColor(0xFF6E8FB0); c.drawPath(path, p);
+        // body (blue back, silver belly)
+        oval(c, cx - len * .45f, cy - ht * .55f, cx + len * .45f, cy + ht * .55f, 0xFF8FB3D6);
+        oval(c, cx - len * .38f, cy - ht * .05f, cx + len * .40f, cy + ht * .52f, 0xFFE4EEF6);
+        // fin, eye, shine
+        path.reset(); path.moveTo(cx - len * .05f, cy - ht * .5f); path.lineTo(cx + len * .12f, cy - ht * .95f); path.lineTo(cx + len * .18f, cy - ht * .45f); path.close();
+        p.setColor(0xFF6E8FB0); c.drawPath(path, p);
+        p.setColor(0xFF2B2F38); c.drawCircle(cx + len * .3f, cy - ht * .1f, ht * .17f, p);
+        p.setColor(0x99FFFFFF); c.drawCircle(cx + len * .05f, cy - ht * .25f, ht * .12f, p);
+        c.restore();
     }
     private void water(Canvas c, float wx, float y) {
         final float bw = w * .055f, wl = Math.max(0f, Math.min(1f, care.water));

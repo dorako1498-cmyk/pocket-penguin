@@ -102,7 +102,7 @@ public class PenguinWallpaperService extends WallpaperService {
             registerReceiver(receiver, f);
         }
 
-        void setCharging(boolean c) { charging = c; brain.charging = c; room.charging = c; }
+        void setCharging(boolean c) { if (testScene != 0) c = false; charging = c; brain.charging = c; room.charging = c; }   // CI screenshots: the emulator always "charges"
 
         void readBattery() {
             try {
@@ -394,7 +394,7 @@ public class PenguinWallpaperService extends WallpaperService {
             scClock += dt;
             cloudOn += ((scene == SC_QUARREL && scPhase == 2 ? 1f : 0f) - cloudOn) * Math.min(1f, dt * 7f);
             if (!buddyOn) { endScene(); return; }
-            if (testScene > 0 && scene == SC_NONE && !brain.offscreenState() && w > 0 && scClock > 1.5f) { final int k = testScene; testScene = -1; startScene(k, 0); return; }
+            if (testScene > 0 && scene == SC_NONE && !brain.offscreenState() && !brain.riding && !buddy.riding() && w > 0 && scClock > 1.5f) { final int k = testScene; testScene = -1; startScene(k, 0); return; }
             // things Jinbei does that the penguin reacts to
             final int bs = buddy.state;
             if (bs != lastBuddyState) {
