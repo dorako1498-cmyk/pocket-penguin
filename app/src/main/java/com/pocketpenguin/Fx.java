@@ -10,7 +10,7 @@ import android.graphics.Typeface;
 final class Fx {
     static final int HEART = 1, EXCL = 2, QUEST = 3, SPARK = 4, ZZZ = 5, SWEAT = 6, PUFF = 7, BOLT = 8, BUBBLE = 9,
             ANGER = 10, TEAR = 11, NOTE = 12, HIT = 13;   // HIT: comic impact burst with a sound word (see HIT_WORDS)
-    static final String[] HIT_WORDS = { "ポカッ！", "ドカッ！", "バシッ！", "ペチッ！", "ボコッ！", "ドーン！" };
+    static final String[] HIT_WORDS = { "ポカッ！", "ドカッ！", "バシッ！", "ペチッ！", "ボコッ！", "ドーン！", "ゴツン！" };
     private final int[] sub = new int[56];   // ANGER: the red "vein" mark, TEAR: falls with gravity, NOTE: a music note
     private static final int N = 56;
     private final int[] type = new int[N];

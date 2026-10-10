@@ -211,6 +211,7 @@ public class PenguinWallpaperService extends WallpaperService {
             updateTreat();
             updateScenes(dt);
             updateLife(dt);
+            shake = Math.max(0f, shake - dt * 2.5f);
             if (buddyOn) buddy.friend = care.friend;
             rig.boots = room.weather() == 1;
             updateTalk(dt);
@@ -235,6 +236,8 @@ public class PenguinWallpaperService extends WallpaperService {
 
         /** Everything in drawing order (also used for photo mode). */
         void drawScene(Canvas c) {
+                c.save();
+                if (shake > .01f) c.translate((float) Math.sin(scClock * 83f) * shake * w * .012f, (float) Math.cos(scClock * 97f) * shake * h * .005f);
                 room.drawBack(c, hour, minute);
                 decor.draw(c, Math.min(1f, room.cur.lamp));
                 room.drawTint(c);
@@ -243,11 +246,13 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (buddyOn && !bFront) buddy.draw(c, bart);
                 if (brain.state != State.OFF_SCREEN && art != null) { rig.draw(c, art, brain.x, brain.groundY, brain.u * brain.depth(), brain.face, 255, 0f); if (brain.inBed()) room.drawBedFront(c); }
                 drawBrush(c);
+                drawFightMarks(c);
                 if (bFront) buddy.draw(c, bart);
                 drawCloud(c);
                 decor.drawBowls(c);
                 fx.draw(c);
                 room.drawFront(c);
+                c.restore();
                 if (talkOn) talk.draw(c, headX(), headY() - 60f * brain.u, buddy.headX(), buddy.headY());
         }
 
@@ -334,6 +339,11 @@ public class PenguinWallpaperService extends WallpaperService {
         int testScene;   // CI hook: prefs "test_scene" starts that scene as soon as possible (screenshots); 11 = quarrel straight to the fight
         boolean testFight;
         int scene, scPhase, scRound, lastBuddyState = -1; float scT, scClock, scCool = 75f, scFxT, cloudOn; boolean scFlag, scMediated;
+        // v0.15: livelier quarrels
+        boolean scMini;                 // a short spat (2 blows, short sulk) instead of the full fight
+        int scWinner, scBlows = 6;      // 0 Jinbei wins, 1 the penguin wins, 2 both go down (ゴツン！)
+        float shake, quarrelCoolUntil = 40f, glareT;
+        float penDizzyFrom = -1f, penDizzyUntil = -1f, penBumpUntil = -1f, budDizzyUntil = -1f;
         final android.graphics.Paint cloudP = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG), cloudL = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
 
         boolean scenesOk() {
@@ -351,6 +361,10 @@ public class PenguinWallpaperService extends WallpaperService {
             brain.hold = true; buddy.hold = true;
             switch (kind) {
                 case SC_QUARREL: {
+                    scMini = reason == 3 || reason == 4 || (reason == 0 && random.nextBoolean());
+                    final float wr = random.nextFloat(); scWinner = wr < .45f ? 0 : wr < .8f ? 1 : 2;
+                    scBlows = scMini ? 3 : 6;
+                    quarrelCoolUntil = scClock + 45f;
                     final float side = brain.x < buddy.x ? -1f : 1f;
                     brain.touchX = Math.max(w * .17f, Math.min(w * .83f, buddy.x + side * w * .24f)); brain.react(Seqs.R_APPROACH);
                     buddy.act(Buddy.IDLE, 8f, side > 0 ? 1 : -1);
@@ -376,7 +390,7 @@ public class PenguinWallpaperService extends WallpaperService {
             if (scene == SC_TAG || scene == SC_DANCE || scene == SC_HIDE || scene == SC_PASS || scene == SC_BUBBLE || scene == SC_SNOW) care.addFriend(.06f);
             scene = SC_NONE; brain.hold = false; buddy.hold = false; cloudOn = 0f;
             if (brain.state == State.HIDE) brain.react(Seqs.R_FOUND);      // do not stay hidden after an interrupted game
-            scCool = scClock + 110f + random.nextFloat() * 110f;
+            scCool = scClock + 60f + random.nextFloat() * 60f;
         }
         /** The user tapped one of the two during a quarrel: they stop and make up. */
         boolean mediate(float tx, float ty) {
@@ -388,8 +402,16 @@ public class PenguinWallpaperService extends WallpaperService {
 
         // ---- the fight, blow by blow: penguin punch, Jinbei headbutt, penguin kick, Jinbei fin slap, penguin punch, Jinbei big headbutt (knock-down)
         static final float BLOW = .9f; static final int BLOWS = 6;
+        /** Who attacks at this step: even = penguin, odd = Jinbei; the last blow depends on who wins (both at once for a draw). */
+        boolean penAttacks(int step) { return step == scBlows - 1 ? scWinner != 0 : step % 2 == 0; }
+        boolean budAttacks(int step) { return step == scBlows - 1 ? scWinner != 1 : step % 2 == 1; }
         void fightAttack(int step) {
             final int tb = towardBuddy(), tp = towardPen();
+            if (step < scBlows) {
+                if (penAttacks(step)) { brain.face = tb; brain.react((step / 2) % 2 == 1 ? Seqs.R_KICKHIT : Seqs.R_PUNCH); }
+                if (budAttacks(step)) buddy.act(step % 4 == 3 && step != scBlows - 1 ? Buddy.FINSLAP_B : Buddy.HEADBUTT_B, BLOW, tp);
+                return;
+            }
             if (testScene != 0) android.util.Log.d("PPdbg", "attack " + step + " t=" + scT + " pen=" + brain.x / w + " bud=" + buddy.x / w + " st=" + brain.state + "/" + Buddy.NAMES[buddy.state]);
             switch (step) {
                 case 0: case 4: brain.face = tb; brain.react(Seqs.R_PUNCH); break;
@@ -400,16 +422,74 @@ public class PenguinWallpaperService extends WallpaperService {
         }
         void fightImpact(int step) {
             final int tb = towardBuddy(), tp = towardPen(); final float u = brain.u;
-            final boolean penHits = step % 2 == 0, last = step == BLOWS - 1;
+            final boolean last = step == scBlows - 1;
+            if (last) { finalBlow(tb, tp); return; }
+            final boolean penHits = penAttacks(step);
+            shake = Math.max(shake, .45f);
             // the burst appears on whoever gets hit: Jinbei's face, or the penguin's face
             final float cx = penHits ? buddy.headX() - tp * w * .02f : headX() + tb * w * .03f, cy = penHits ? buddy.headY() + h * .012f : headY() + 140f * u;
             if (testScene != 0) android.util.Log.d("PPdbg", "impact " + step + " at " + cx / w + "," + cy / h + " pen=" + brain.state + " bud=" + Buddy.NAMES[buddy.state]);
             fx.hit(cx, cy, w * (last ? .085f : .065f), penHits ? (step == 2 ? 2 : step == 4 ? 4 : 0) : (last ? 5 : step == 3 ? 3 : 1));
             for (int i = 0; i < 3; i++) fx.spawn(Fx.SPARK, cx + (random.nextFloat() - .5f) * w * .08f, cy + (random.nextFloat() - .5f) * h * .03f, (random.nextFloat() - .5f) * 160f * u, -90f * u, .6f, 24f * u);
-            if (penHits) { buddy.act(Buddy.HIT_B, .85f, tp); fx.spawn(Fx.ANGER, buddy.headX(), buddy.headY() - 50f * u, 0f, -20f * u, .9f, 28f * u); }
-            else if (last) { brain.face = -tb; brain.react(Seqs.R_KNOCK); for (int i = -1; i <= 1; i += 2) fx.spawn(Fx.PUFF, brain.x + i * 120f * u, brain.groundY - 10f * u, i * 120f * u, -15f * u, .6f, 30f * u); }
-            else { brain.face = tb; brain.react(Seqs.R_HIT); }
+            if (penHits) {
+                buddy.act(Buddy.HIT_B, .85f, tp); fx.spawn(Fx.ANGER, buddy.headX(), buddy.headY() - 50f * u, 0f, -20f * u, .9f, 28f * u);
+                fx.spawn(Fx.SWEAT, buddy.headX() + tp * w * .03f, buddy.headY(), tp * 60f * u, -40f * u, .8f, 18f * u);
+                if (talkOn && step >= 2 && random.nextInt(3) != 0) talk.say(1, '!', "いてっ！/…やったな/ちょっと！/いたいって！");
+            } else {
+                brain.face = tb; brain.react(Seqs.R_HIT);
+                fx.spawn(Fx.SWEAT, headX() - tb * 120f * u, headY() + 60f * u, -tb * 60f * u, -40f * u, .8f, 18f * u);
+                if (talkOn && step >= 2 && random.nextInt(3) != 0) talk.say(0, '!', "いたっ！/うっ…！/やりましたね！/まだまだです！");
+            }
         }
+
+        /** The last blow: Jinbei knocks the penguin down, the penguin sends Jinbei flying, or both bump heads (ゴツン！). */
+        void finalBlow(int tb, int tp) {
+            final float u = brain.u, t = brain.time;
+            shake = 1f;
+            if (scWinner == 2) {                       // draw: heads collide
+                final float cx = (headX() + buddy.headX()) * .5f, cy = (headY() + 140f * u + buddy.headY()) * .5f;
+                fx.hit(cx, cy, w * .09f, 6);
+                brain.face = -tb; brain.react(Seqs.R_KNOCK); buddy.act(Buddy.HIT_B, 1.6f, tp);
+                penDizzyFrom = t + 1.5f; penDizzyUntil = t + 5f; penBumpUntil = t + 30f; budDizzyUntil = brain.time + 3.5f;
+                if (talkOn) talk.say(0, '!', "いたたた…/め、目が回ります…");
+            } else if (scWinner == 1) {                // the penguin wins
+                final float cx = buddy.headX() - tp * w * .02f, cy = buddy.headY() + h * .012f;
+                fx.hit(cx, cy, w * .09f, 5);
+                buddy.act(Buddy.HIT_B, 1.6f, tp); budDizzyUntil = t + 3.5f;
+                for (int i = 0; i < 4; i++) fx.spawn(Fx.SPARK, cx, cy, (random.nextFloat() - .5f) * 220f * u, -120f * u * random.nextFloat(), .7f, 26f * u);
+                if (talkOn) talk.say(1, 'z', "…きゅう…/…まいった…");
+            } else {                                   // Jinbei wins
+                fx.hit(headX() + tb * w * .03f, headY() + 140f * u, w * .09f, 5);
+                brain.face = -tb; brain.react(Seqs.R_KNOCK);
+                penDizzyFrom = t + 1.5f; penDizzyUntil = t + 5f; penBumpUntil = t + 30f;
+                for (int i = -1; i <= 1; i += 2) fx.spawn(Fx.PUFF, brain.x + i * 120f * u, brain.groundY - 10f * u, i * 120f * u, -15f * u, .6f, 30f * u);
+                if (talkOn) talk.say(1, '\0', "…ふう。ぼくの勝ち/…手かげんしたんだけど");
+            }
+        }
+
+        /** Dizzy stars circling a head, and the penguin's bump (たんこぶ) after a knock-down. */
+        void drawFightMarks(Canvas c) {
+            final float t = brain.time, U = brain.u * brain.depth();
+            if (t > penDizzyFrom && t < penDizzyUntil) stars(c, headX(), headY() + 30f * U, 130f * U, t);
+            if (t < budDizzyUntil && buddyOn) stars(c, buddy.headX(), buddy.headY() - h * .01f, w * .06f, t);
+            if (t > penDizzyFrom && t < penBumpUntil && brain.state != State.OFF_SCREEN) {
+                final float bx = headX() + brain.face * 40f * U, by = headY() + 28f * U, r = 30f * U * Math.min(1f, (t - penDizzyFrom) * 3f);
+                brushP.setStyle(android.graphics.Paint.Style.FILL); brushP.setColor(0xFFF47C86); c.drawCircle(bx, by, r, brushP);
+                brushP.setColor(0xAAFFFFFF); c.drawCircle(bx - r * .3f, by - r * .35f, r * .3f, brushP);
+            }
+        }
+        private void stars(Canvas c, float cx, float cy, float rad, float t) {
+            brushP.setStyle(android.graphics.Paint.Style.FILL);
+            for (int i = 0; i < 3; i++) {
+                final double a = t * 5.0 + i * 2.094;
+                final float sx = cx + (float) Math.cos(a) * rad, sy = cy + (float) Math.sin(a) * rad * .3f, s = rad * .16f;
+                brushP.setColor(0xFFFFD84D);
+                starPath.reset();
+                for (int k = 0; k < 10; k++) { final double b = -Math.PI / 2 + k * Math.PI / 5; final float r = k % 2 == 0 ? s : s * .45f; final float px = sx + (float) Math.cos(b) * r, py = sy + (float) Math.sin(b) * r; if (k == 0) starPath.moveTo(px, py); else starPath.lineTo(px, py); }
+                starPath.close(); c.drawPath(starPath, brushP);
+            }
+        }
+        final android.graphics.Path starPath = new android.graphics.Path();
 
         void quarrelPhase(int p) {
             if (testScene != 0) android.util.Log.d("PPdbg", "phase " + p + " pen=" + brain.x / w + " bud=" + buddy.x / w);
@@ -418,7 +498,10 @@ public class PenguinWallpaperService extends WallpaperService {
             switch (p) {
                 case 1:
                     brain.face = tb; brain.react(Seqs.R_ANGRY); buddy.act(Buddy.ANGRY_B, 5.8f, tp);
-                    if (scRound == 2) script(pickOf("P!:それ、ぼくのお魚です！|J:先に取ったもん勝ちでしょ|P:そんなのずるいです！|J:早い者勝ちって知らない？",
+                    if (scMini && scRound == 0) script(pickOf("P:ちょっと、ジンベエくん！|J:…なに？", "J:…いまの、わざとでしょ|P:わざとじゃないです！", "P:ジンベエくん、じゃまです|J:そっちこそ"));
+                    else if (scRound == 3) script(pickOf("P!:いたっ…いま、ぶつかりましたよね！|J:そっちがぶつかってきたんでしょ|P:ちがいます！", "J:いてっ。前見て歩いてよ|P:ジンベエくんこそ！"));
+                    else if (scRound == 4) script(pickOf("P:そのボール、ぼくが遊んでたんです！|J:転がってきたから、ぼくのでしょ|P:そんな理屈ありません！", "J:ボール、もーらい|P!:返してください！"));
+                    else if (scRound == 2) script(pickOf("P!:それ、ぼくのお魚です！|J:先に取ったもん勝ちでしょ|P:そんなのずるいです！|J:早い者勝ちって知らない？",
                             "P!:ぼくのお魚、食べましたね！？|J:おいしかったよ。ありがと|P:お礼を言われても…！"));
                     else if (scRound == 1) script(pickOf("P!:ジンベエくん！ぼくのごはん食べましたね！|J:おなかすいてたんだもん|P:ぼくもすいてたんです！|J:…もう食べちゃったし",
                             "P!:お皿がからっぽ…ぜんぶ食べたんですか！？|J:ちょっとのつもりだったんだけどね|P:ちょっとじゃないです！"));
@@ -429,12 +512,14 @@ public class PenguinWallpaperService extends WallpaperService {
                     break;
                 case 2:                      // the fight: six blows, taking turns (see fightStep)
                     scRound = -1; brain.face = tb;
-                    script(pickOf("P!:もう許しません！|J:へぇ、やる気？", "J:…やる？|P!:受けて立ちます！", "P!:えいっ、です！|J:いきなり！？"));
+                    script(scMini ? pickOf("P!:えいっ！|J:…あ、そう", "J:…ほらっ|P!:やりましたね！") : pickOf("P!:もう許しません！|J:へぇ、やる気？", "J:…やる？|P!:受けて立ちます！", "P!:えいっ、です！|J:いきなり！？"));
                     break;
                 case 3:
                     care.addFriend(-.15f);
-                    brain.face = -tb; brain.react(Seqs.R_SULK); buddy.act(Buddy.SULK_B, 7f, -tp);
-                    script(pickOf("P:…もう知りません！|J:…ふん。こっちのセリフ", "P:しばらく口をききません|J:はいはい。…いま、きいてるけどね", "J:…あー、せいせいした|P:…ぼくもです"));
+                    brain.face = -tb; brain.react(Seqs.R_SULK); buddy.act(Buddy.SULK_B, scMini ? 3.2f : 7f, -tp);
+                    if (scWinner == 1 && !scMini) script("P:…勝ちました。…でも、なんだかすっきりしません|J:…ふん");
+                    else if (scWinner == 0 && !scMini) script("P:…いたい…|J:…ちょっと、やりすぎたかな");
+                    else script(pickOf("P:…もう知りません！|J:…ふん。こっちのセリフ", "P:しばらく口をききません|J:はいはい。…いま、きいてるけどね", "J:…あー、せいせいした|P:…ぼくもです"));
                     break;
                 case 4:
                     brain.face = tb; brain.react(random.nextInt(3) == 0 ? Seqs.R_CRY : Seqs.R_SAD); buddy.act(Buddy.SAD_B, 3.4f, tp);
@@ -442,7 +527,8 @@ public class PenguinWallpaperService extends WallpaperService {
                     break;
                 case 5:
                     brain.face = tb; brain.react(Seqs.R_MAKEUP); buddy.act(Buddy.WIGGLE, 3.6f, tp);
-                    if (!scMediated) script(pickOf("P:…さっきは、ごめんなさい|J:…ぼくも、ごめん|P*:仲直りです！|J*:…うん、仲直り",
+                    if (!scMediated && scMini) script(pickOf("P:…ごめんなさい|J:…ん。ぼくも", "J:…ごめん|P:…いえ、ぼくこそ"));
+                    else if (!scMediated) script(pickOf("P:…さっきは、ごめんなさい|J:…ぼくも、ごめん|P*:仲直りです！|J*:…うん、仲直り",
                             "J:…ねえ。ごめんね|P:ぼくのほうこそ、ごめんなさい|J*:…よし。この話はおしまい", "P:…あの、いっしょにボールしませんか|J*:…しかたないなぁ。つきあうよ"));
                     final float mx = (brain.x + buddy.x) * .5f, my = headY() - 40f * brain.u;
                     for (int i = 0; i < 5; i++) fx.spawn(Fx.HEART, mx + (random.nextFloat() - .5f) * w * .15f, my, (random.nextFloat() - .5f) * 60f * brain.u, -70f * brain.u, 1.8f, 30f * brain.u);
@@ -464,12 +550,22 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (scene == SC_NONE && (bs == Buddy.ROLL || bs == Buddy.CHASE_TAIL) && scenesOk() && penFree() && random.nextInt(2) == 0) { brain.face = towardBuddy(); brain.react(Seqs.R_LAUGH); }
                 lastBuddyState = bs;
             }
+            if (scene == SC_NONE && scClock > quarrelCoolUntil && scenesOk() && !buddy.asleep) {
+                final boolean budMoving = bs == Buddy.CRAWL || bs == Buddy.SWIM;
+                if (brain.state.isMove() && budMoving && Math.abs(brain.x - buddy.x) < w * .12f) {          // walked into each other
+                    quarrelCoolUntil = scClock + 20f; if (random.nextBoolean()) { startScene(SC_QUARREL, 3); return; }
+                }
+                if ((brain.seqId == Seqs.BALL_PLAY || brain.seqId == Seqs.R_PLAY) && budMoving && Math.abs(buddy.x - room.ballX) < w * .14f) {   // both after the ball
+                    quarrelCoolUntil = scClock + 20f; if (random.nextInt(5) < 3) { startScene(SC_QUARREL, 4); return; }
+                }
+            }
             if (buddy.ateLast) { buddy.ateLast = false; if (scene == SC_NONE && care.pHungry() && scenesOk() && random.nextInt(3) != 0) { startScene(SC_QUARREL, 1); return; } }
             if (scene == SC_NONE) {
                 if (scClock > 20f && ((int) scClock) % 10 == 0 && scClock - (int) scClock < dt && dailyEvent()) return;
                 if (scClock > scCool && scenesOk() && penFree() && (!buddy.asleep || random.nextInt(4) == 0)) {
                     final float fr = care.friend;
-                    final float dance = (care.pMood > .7f ? 30f : 14f) * (1f + .5f * fr), tag = 22f * (1f + .5f * fr), quarrel = (care.pMood > .8f ? 12f : 20f) * (1.2f - fr), hide = 18f, pass = 18f, bubble = 16f;
+                    final float dance = (care.pMood > .7f ? 24f : 12f) * (1f + .5f * fr), tag = 18f * (1f + .5f * fr), hide = 14f, pass = 14f, bubble = 12f;
+                    final float quarrel = scClock < quarrelCoolUntil ? 0f : (care.pMood > .8f ? 30f : 45f) * (1.3f - .5f * fr);
                     final float[] wv = { dance, tag, quarrel, hide, pass, bubble }; final int[] kv = { SC_DANCE, SC_TAG, SC_QUARREL, SC_HIDE, SC_PASS, SC_BUBBLE };
                     float tot = 0f; for (float v : wv) tot += v;
                     float r = random.nextFloat() * tot; int k = SC_DANCE;
@@ -484,7 +580,19 @@ public class PenguinWallpaperService extends WallpaperService {
                 case SC_QUARREL:
                     switch (scPhase) {
                         case 0: if ((scT > 2f && !brain.state.isMove()) || scT > 6.5f) quarrelPhase(testFight ? 2 : 1); break;
-                        case 1: if (!scFlag && scT > 2.8f) { scFlag = true; brain.react(Seqs.R_ANGRY); } if (scT > 5.6f) quarrelPhase(2); break;
+                        case 1: {
+                            if (!scFlag && scT > 2.8f && !scMini) { scFlag = true; brain.react(Seqs.R_ANGRY); }
+                            // glaring at each other: sparks crackle between them, steam rises from both heads
+                            glareT -= dt;
+                            if (glareT <= 0f) {
+                                glareT = .4f; final float u = brain.u;
+                                final float mx = (headX() + buddy.headX()) * .5f, my = (headY() + 160f * u + buddy.headY()) * .5f;
+                                fx.spawn(Fx.BOLT, mx + (random.nextFloat() - .5f) * w * .05f, my + (random.nextFloat() - .5f) * h * .02f, 0f, -20f * u, .4f, 34f * u);
+                                fx.spawn(Fx.PUFF, buddy.headX(), buddy.headY() - h * .02f, (random.nextFloat() - .5f) * 40f * u, -70f * u, .7f, 20f * u);
+                                if (random.nextInt(3) == 0) fx.spawn(Fx.ANGER, buddy.headX() + (random.nextFloat() - .5f) * w * .05f, buddy.headY() - h * .03f, 0f, -15f * u, .8f, 26f * u);
+                            }
+                            if (scT > (scMini ? 3.2f : 5.6f)) quarrelPhase(2);
+                            break; }
                         case 2: {
                             // keep fighting distance: between blows the penguin edges back in front of Jinbei's head
                             final State ps = brain.state;
@@ -493,11 +601,11 @@ public class PenguinWallpaperService extends WallpaperService {
                                 if (Math.abs(d) > w * .01f) brain.x += Math.signum(d) * Math.min(Math.abs(d), w * .3f * dt);
                             }
                             final int step = (int) (scT / BLOW);
-                            if (step != scRound && step < BLOWS) { scRound = step; scFlag = false; fightAttack(step); }
-                            if (!scFlag && step < BLOWS && scT - step * BLOW > .3f) { scFlag = true; fightImpact(step); }
-                            if (scT > BLOWS * BLOW + 2.4f) quarrelPhase(3);
+                            if (step != scRound && step < scBlows) { scRound = step; scFlag = false; fightAttack(step); }
+                            if (!scFlag && step < scBlows && scT - step * BLOW > .3f) { scFlag = true; fightImpact(step); }
+                            if (scT > scBlows * BLOW + (scMini ? 1.8f : 2.6f)) quarrelPhase(3);
                             break; }
-                        case 3: if (scT > 7f) quarrelPhase(4); break;
+                        case 3: if (scT > (scMini ? 3.2f : 7f)) quarrelPhase(scMini ? 5 : 4); break;
                         case 4: if (scT > 3.4f) quarrelPhase(5); break;
                         default: if (scT > 4.6f) endScene(); break;
                     }
@@ -573,7 +681,7 @@ public class PenguinWallpaperService extends WallpaperService {
                 decor.treatOn = false; care.snackB();
                 fx.spawn(Fx.HEART, buddy.headX(), buddy.headY() - 40f * u, 0f, -70f * u, 1.5f, 26f * u);
                 if (brain.seqId == Seqs.R_FETCH) {
-                    if (random.nextInt(5) < 2 && scenesOk()) startScene(SC_QUARREL, 2);
+                    if (random.nextInt(10) < 7 && scenesOk()) startScene(SC_QUARREL, 2);
                     else { brain.face = towardBuddy(); brain.react(Seqs.R_SAD); if (talkOn) talk.say(0, '\0', "あっ…ぼくのお魚…/ジンベエくんに取られちゃいました…"); }
                 }
             }
