@@ -213,7 +213,7 @@ final class Brain {
             case GREETING_USER: break;
             case PUNCH: if (t > .12f && t < .3f) vx += face * 300f * u; else if (t > .4f && t < .6f) vx -= face * 250f * u; break;
             case KICK: if (t > .15f && t < .32f) vx += face * 180f * u; else if (t > .45f && t < .62f) vx -= face * 150f * u; break;
-            case HIT: if (t < .35f) vx -= face * 420f * u * (1f - t / .35f); break;   // knocked back
+            case HIT: if (t < .35f) vx -= face * 420f * u * (1f - t / .35f); else if (t > .42f && t < .62f) vx += face * 365f * u; break;   // knocked back, steps in again
             default: break;
         }
         x += vx * dt;

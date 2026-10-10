@@ -331,7 +331,8 @@ public class PenguinWallpaperService extends WallpaperService {
 
         // ================================================================== scenes with Jinbei (v0.11): quarrel, tag, dance
         static final int SC_NONE = 0, SC_QUARREL = 1, SC_TAG = 2, SC_DANCE = 3;
-        int testScene;   // CI hook: prefs "test_scene" starts that scene as soon as possible (screenshots)
+        int testScene;   // CI hook: prefs "test_scene" starts that scene as soon as possible (screenshots); 11 = quarrel straight to the fight
+        boolean testFight;
         int scene, scPhase, scRound, lastBuddyState = -1; float scT, scClock, scCool = 75f, scFxT, cloudOn; boolean scFlag, scMediated;
         final android.graphics.Paint cloudP = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG), cloudL = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
 
@@ -453,7 +454,9 @@ public class PenguinWallpaperService extends WallpaperService {
             scClock += dt;
             cloudOn = 0f;      // v0.14: the fight is shown blow by blow (no dust cloud any more)
             if (!buddyOn) { endScene(); return; }
-            if (testScene > 0 && scene == SC_NONE && !brain.offscreenState() && !brain.riding && !buddy.riding() && w > 0 && scClock > 1.5f) { final int k = testScene; testScene = -1; startScene(k, 0); return; }
+            if (testScene > 0 && scene == SC_NONE && !brain.offscreenState() && !brain.riding && !buddy.riding() && w > 0 && scClock > 1.5f) {
+                final int k = testScene; testScene = -1; testFight = k == 11; startScene(testFight ? SC_QUARREL : k, 0); return;
+            }
             // things Jinbei does that the penguin reacts to
             final int bs = buddy.state;
             if (bs != lastBuddyState) {
@@ -479,9 +482,15 @@ public class PenguinWallpaperService extends WallpaperService {
             switch (scene) {
                 case SC_QUARREL:
                     switch (scPhase) {
-                        case 0: if ((scT > 2f && !brain.state.isMove()) || scT > 6.5f) quarrelPhase(1); break;
+                        case 0: if ((scT > 2f && !brain.state.isMove()) || scT > 6.5f) quarrelPhase(testFight ? 2 : 1); break;
                         case 1: if (!scFlag && scT > 2.8f) { scFlag = true; brain.react(Seqs.R_ANGRY); } if (scT > 5.6f) quarrelPhase(2); break;
                         case 2: {
+                            // keep fighting distance: between blows the penguin edges back in front of Jinbei's head
+                            final State ps = brain.state;
+                            if (ps != State.PUNCH && ps != State.KICK && ps != State.HIT && ps != State.FALL && ps != State.GET_UP && ps != State.CONFUSED) {
+                                final float want = buddy.headX() - towardBuddy() * w * .13f, d = want - brain.x;
+                                if (Math.abs(d) > w * .01f) brain.x += Math.signum(d) * Math.min(Math.abs(d), w * .3f * dt);
+                            }
                             final int step = (int) (scT / BLOW);
                             if (step != scRound && step < BLOWS) { scRound = step; scFlag = false; fightAttack(step); }
                             if (!scFlag && step < BLOWS && scT - step * BLOW > .3f) { scFlag = true; fightImpact(step); }

@@ -331,7 +331,7 @@ final class Buddy {
             case HEADBUTT_B: {               // pull back, then ram forward with the snout, then back to the spot
                 moodFace = 1;
                 final float back = ph < .2f ? 1f : 0f, ram = ph >= .2f && ph < .42f ? 1f : 0f, ret = ph >= .5f && ph < .8f ? 1f : 0f;
-                vx = face * w * (.55f * ram - .18f * back - .38f * ret);
+                vx = face * w * (.55f * ram - .18f * back - .283f * ret);      // net movement zero: ends where it started
                 rotT = 8f * ram - 6f * back; sxT = 1f + .08f * ram; syT = 1f - .05f * ram; tailT = 30f * (float) Math.sin(t * 20f); finT = 50f; eyeT = 1.1f; moT = .3f * ram; blT = 1.3f;
                 break; }
             case FINSLAP_B: {                // big swing of the pectoral fin (slap!)
@@ -342,7 +342,7 @@ final class Buddy {
                 break; }
             case HIT_B: {                    // got hit: pushed back, spinning eyes, wobble
                 moodFace = 3;
-                vx = ph < .4f ? -face * w * .32f * (1f - ph / .4f) : 0f;
+                vx = ph < .4f ? -face * w * .32f * (1f - ph / .4f) : ph > .55f && ph < .9f ? face * w * .183f : 0f;   // knocked back, then shuffles back
                 rotT = -12f + 6f * (float) Math.sin(t * 28f); sxT = 1.05f; syT = .94f; tailT = 25f * (float) Math.sin(t * 22f); finT = 70f; moT = .35f; blT = 1.2f;
                 break; }
             case SCUFFLE_B: {                 // tussle: violent wobble (mostly hidden in the dust cloud)
