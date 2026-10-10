@@ -400,8 +400,9 @@ public class PenguinWallpaperService extends WallpaperService {
         }
         void fightImpact(int step) {
             final int tb = towardBuddy(), tp = towardPen(); final float u = brain.u;
-            final float cx = (brain.x + tb * w * .06f + buddy.headX()) * .5f, cy = headY() + 150f * u;
             final boolean penHits = step % 2 == 0, last = step == BLOWS - 1;
+            // the burst appears on whoever gets hit: Jinbei's face, or the penguin's face
+            final float cx = penHits ? buddy.headX() - tp * w * .02f : headX() + tb * w * .03f, cy = penHits ? buddy.headY() + h * .012f : headY() + 140f * u;
             if (testScene != 0) android.util.Log.d("PPdbg", "impact " + step + " at " + cx / w + "," + cy / h + " pen=" + brain.state + " bud=" + Buddy.NAMES[buddy.state]);
             fx.hit(cx, cy, w * (last ? .085f : .065f), penHits ? (step == 2 ? 2 : step == 4 ? 4 : 0) : (last ? 5 : step == 3 ? 3 : 1));
             for (int i = 0; i < 3; i++) fx.spawn(Fx.SPARK, cx + (random.nextFloat() - .5f) * w * .08f, cy + (random.nextFloat() - .5f) * h * .03f, (random.nextFloat() - .5f) * 160f * u, -90f * u, .6f, 24f * u);
