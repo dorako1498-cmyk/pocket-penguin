@@ -85,7 +85,8 @@ jobs:
             adb shell am start -a android.service.wallpaper.CHANGE_LIVE_WALLPAPER --ecn android.service.wallpaper.extra.LIVE_WALLPAPER_COMPONENT com.pocketpenguin/.PenguinWallpaperService || true
             sleep 2
             adb shell input swipe 540 1900 540 2350 300 || true
-            for i in $(seq 1 16); do sleep 1.5; adb exec-out screencap -p > shots/api${{ matrix.api }}-s$i.png || true; done
+            for i in $(seq 1 40); do adb exec-out screencap -p > shots/api${{ matrix.api }}-s$i.png || true; done
+            adb logcat -d -s PPdbg | tail -40 || true
             adb shell input swipe 540 1900 540 2350 300 || true
             sleep 2
             adb exec-out screencap -p > shots/api${{ matrix.api }}-c.png || true

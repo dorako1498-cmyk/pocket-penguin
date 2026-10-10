@@ -389,6 +389,7 @@ public class PenguinWallpaperService extends WallpaperService {
         static final float BLOW = .9f; static final int BLOWS = 6;
         void fightAttack(int step) {
             final int tb = towardBuddy(), tp = towardPen();
+            if (testScene != 0) android.util.Log.d("PPdbg", "attack " + step + " t=" + scT + " pen=" + brain.x / w + " bud=" + buddy.x / w + " st=" + brain.state + "/" + Buddy.NAMES[buddy.state]);
             switch (step) {
                 case 0: case 4: brain.face = tb; brain.react(Seqs.R_PUNCH); break;
                 case 2: brain.face = tb; brain.react(Seqs.R_KICKHIT); break;
@@ -400,6 +401,7 @@ public class PenguinWallpaperService extends WallpaperService {
             final int tb = towardBuddy(), tp = towardPen(); final float u = brain.u;
             final float cx = (brain.x + tb * w * .06f + buddy.headX()) * .5f, cy = headY() + 150f * u;
             final boolean penHits = step % 2 == 0, last = step == BLOWS - 1;
+            if (testScene != 0) android.util.Log.d("PPdbg", "impact " + step + " at " + cx / w + "," + cy / h + " pen=" + brain.state + " bud=" + Buddy.NAMES[buddy.state]);
             fx.hit(cx, cy, w * (last ? .085f : .065f), penHits ? (step == 2 ? 2 : step == 4 ? 4 : 0) : (last ? 5 : step == 3 ? 3 : 1));
             for (int i = 0; i < 3; i++) fx.spawn(Fx.SPARK, cx + (random.nextFloat() - .5f) * w * .08f, cy + (random.nextFloat() - .5f) * h * .03f, (random.nextFloat() - .5f) * 160f * u, -90f * u, .6f, 24f * u);
             if (penHits) { buddy.act(Buddy.HIT_B, .85f, tp); fx.spawn(Fx.ANGER, buddy.headX(), buddy.headY() - 50f * u, 0f, -20f * u, .9f, 28f * u); }
@@ -408,6 +410,7 @@ public class PenguinWallpaperService extends WallpaperService {
         }
 
         void quarrelPhase(int p) {
+            if (testScene != 0) android.util.Log.d("PPdbg", "phase " + p + " pen=" + brain.x / w + " bud=" + buddy.x / w);
             scPhase = p; scT = 0f; scFlag = false;
             final int tb = towardBuddy(), tp = towardPen();
             switch (p) {
