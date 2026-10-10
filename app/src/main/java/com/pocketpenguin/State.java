@@ -18,7 +18,9 @@ enum State {
     LOOK_AT_CLOCK, LOOK_WINDOW, STARGAZE, RUN_TO_CHARGER, REST_WHILE_CHARGING,
     EAT, DRINK, NOD_OFF, LOOK_AT_WING, LOOK_AT_FEET,
     // screen edge
-    EXIT_SCREEN, OFF_SCREEN, PEEK_FROM_EDGE, ENTER_SCREEN;
+    EXIT_SCREEN, OFF_SCREEN, PEEK_FROM_EDGE, ENTER_SCREEN,
+    // emotions (v0.11): anger, sulking (back turned), sadness, crying, laughing, dancing, a cartoon scuffle
+    ANGRY, SULK, SAD, CRY, LAUGH, DANCE, SCUFFLE;
 
     boolean isMove() {
         switch (this) {
@@ -49,7 +51,7 @@ enum State {
             case IDLE: case BREATHE: case BLINK: case LOOK_LEFT: case LOOK_RIGHT: case LOOK_UP:
             case LOOK_USER: case TILT_HEAD: case SIT: case SLEEPY: case LOOK_AT_CLOCK:
             case LOOK_WINDOW: case STARGAZE: case CURIOUS: case LOOK_AT_WING: case LOOK_AT_FEET:
-            case EAT: case DRINK: case STOP_WALK:
+            case EAT: case DRINK: case STOP_WALK: case SULK: case SAD:
                 return true;
             default: return false;
         }

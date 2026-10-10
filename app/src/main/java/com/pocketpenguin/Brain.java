@@ -25,7 +25,8 @@ final class Brain {
     float gaitAmp, gaitPh, time;
     float targetX = -1f; boolean hasTarget;
     float touchX = -1f;
-    Care care; float careCool = 60f, ballCool = 90f, boredCool = 120f;
+    Care care; float careCool = 60f, ballCool = 90f, boredCool = 120f, moodCool = 50f;
+    boolean hold;                              // a shared scene with Jinbei is running: stay put between the engine's cues
     int begGoal = Seqs.G_FOOD;                 // the bowl BEG_* sequences pace around
     float avoidX = -1f;                        // where the buddy lies: random wandering prefers other spots (it stands in front of the penguin)
 
@@ -271,6 +272,7 @@ final class Brain {
     private void think() {
         stepChanged = true;
         if (pendingSeq >= 0) { final int p = pendingSeq; pendingSeq = -1; start(p); return; }
+        if (hold) { start(Seqs.HOLD); return; }
         final Calendar cal = Calendar.getInstance();
         final int hour = cal.get(Calendar.HOUR_OF_DAY), doy = cal.get(Calendar.DAY_OF_YEAR);
         final int wx = room.weather();
@@ -304,7 +306,12 @@ final class Brain {
                 else { careCool = time + 70f + rnd.nextFloat() * 60f; start(Seqs.DRINK_WATER); }
                 return;
             }
-            if (time > boredCool && care.pBored() && !asleepish()) { boredCool = time + 80f + rnd.nextFloat() * 70f; start(Seqs.WANT_PLAY); return; }
+            if (time > boredCool && care.pBored() && !asleepish()) {
+                boredCool = time + 80f + rnd.nextFloat() * 70f;
+                start(care.pMood < .25f && rnd.nextInt(3) == 0 ? Seqs.R_CRY : rnd.nextInt(3) == 0 ? Seqs.R_SAD : Seqs.WANT_PLAY); return;
+            }
+            // in a really good mood: dances now and then, or laughs to itself
+            if (time > moodCool && care.pMood > .8f && rnd.nextInt(4) == 0) { moodCool = time + 70f + rnd.nextFloat() * 80f; start(rnd.nextInt(3) == 0 ? Seqs.R_LAUGH : Seqs.DANCE_SEQ); return; }
             if (time > ballCool && rnd.nextInt(5) == 0 && !asleepish()) { ballCool = time + 100f + rnd.nextFloat() * 140f; care.cheer(.06f); start(Seqs.BALL_PLAY); return; }
         }
         final float[] W = weights;

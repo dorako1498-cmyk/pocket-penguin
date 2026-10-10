@@ -374,6 +374,49 @@ final class Rig {
                 float lift = Math.max(0f, sin(t * 7f)) * e;
                 if (rn > 0) { T.fyl -= 16f * lift; T.fxl += 6f * sin(t * 7f) * e; } else { T.fyr -= 16f * lift; T.fxr += 6f * sin(t * 7f) * e; }
                 break; }
+            // ---------------------------------------------------------------- emotions
+            case ANGRY: {                     // puffed up, stomping, wings pulled back, quick angry shakes
+                e = pulse(t, 0f, .2f, dur - .3f, dur);
+                final float st = sin(t * 11f);
+                T.expr = Expr.ANGRY; T.browL = T.browR = -1f * e; T.lid = .28f * e; T.cheek = 1.5f;
+                T.sx += .06f * e; T.sy += .03f * e; T.rot += d * 3f * st * e; T.hrot += -d * 4f * e + 3f * sin(t * 23f) * e;
+                wings(-28f * e + 10f * abs(st) * e); T.hy -= 4f * e;
+                if (st > 0) T.fyl -= 18f * st * e; else T.fyr += 18f * st * e;           // stomp stomp
+                T.by += 3f * abs(st) * e; T.mouth = .12f * e; T.turn = d * .4f; break; }
+            case SULK: {                      // back half-turned, sitting, head down, eyes shut ("hmph!")
+                e = pulse(t, 0f, .4f, dur - .4f, dur);
+                sit(.6f * e); T.expr = Expr.ANGRY; T.browL = T.browR = -.8f * e; T.lid = .75f * e; T.cheek = 1.4f;
+                T.turn = -d * .9f * e; T.hrot = -d * 8f * e; T.hy += 6f * e; T.lookX = -d * .8f; T.lookY = .3f;
+                wings(-10f * e); T.rot += -d * 2f * e + .8f * sin(t * 1.3f) * e; break; }
+            case SAD: {                       // droopy: head down, wings hanging, slow sway
+                e = pulse(t, 0f, .5f, dur - .4f, dur);
+                T.expr = Expr.SAD; T.browL = T.browR = -1f * e; T.lid = .35f * e; T.cheek = .5f;
+                T.hy += 14f * e; T.hrot += rn * 6f * e + 2f * sin(t * 1.4f) * e; T.sy -= .04f * e; T.sx += .02f * e;
+                wings(-8f * e); T.lookY = .7f * e; T.rot += 1.5f * sin(t * 1.4f) * e; break; }
+            case CRY: {                       // sobbing: shoulders jerk, mouth wails
+                e = pulse(t, 0f, .3f, dur - .3f, dur);
+                final float sob = abs(sin(t * 7f));
+                T.expr = Expr.SAD; T.browL = T.browR = -1f * e; T.lid = .55f * e; T.cheek = 1.2f;
+                T.hy += (8f - 6f * sob) * e; T.sy += (.04f * sob - .03f) * e; wings((14f + 18f * sob) * e);
+                T.mouth = (.45f + .25f * sob) * e; T.lookY = .3f; T.rot += 2f * sin(t * 14f) * e; break; }
+            case LAUGH: {                     // ha ha ha: bouncing, holding the belly, beak wide open
+                e = pulse(t, 0f, .15f, dur - .3f, dur);
+                final float ha = abs(sin(t * 12f));
+                T.expr = Expr.VERY_HAPPY; T.cheek = 1.5f; T.mouth = (.4f + .35f * ha) * e;
+                T.by -= 7f * ha * e; T.sy += .05f * ha * e; T.hrot += (-d * 10f + 4f * sin(t * 12f)) * e; T.hy -= 6f * e;
+                T.wl = -24f * e + 6f * ha; T.wr = -24f * e + 6f * ha; T.rot += -d * 4f * e; break; }
+            case DANCE: {                     // side steps, wing waves, a little turn on every fourth beat
+                final float beat = t * 4.2f, sb = sin(beat), cb = cos(beat);
+                e = pulse(t, 0f, .25f, dur - .3f, dur);
+                T.expr = (((int) (beat / 3.1415927f)) % 4 == 3) ? Expr.EXCITED : Expr.VERY_HAPPY; T.cheek = 1.3f;
+                T.bx += 16f * sb * e; T.rot += 9f * sb * e; T.by -= 9f * abs(cb) * e; T.hrot += -7f * sb * e;
+                T.wl = (35f + 35f * sb) * e; T.wr = (35f - 35f * sb) * e;
+                if (sb > 0) T.fyl -= 16f * sb * e; else T.fyr += 16f * sb * e;
+                T.turn = (((int) (beat / 3.1415927f)) % 4 == 3 ? sin(beat * .5f) * 1.2f : d * .3f); T.mouth = .2f * e; break; }
+            case SCUFFLE: {                   // a fast cartoon tussle (mostly hidden in the dust cloud)
+                final float j = sin(t * 31f), k2 = sin(t * 23f + 1f);
+                T.expr = ((int) (t * 5f)) % 3 == 0 ? Expr.DAZE : Expr.ANGRY; T.browL = T.browR = -1f; T.cheek = 1.5f;
+                T.rot += 14f * j; T.bx += 14f * k2; T.by -= 10f * abs(j); wings(50f + 40f * k2); T.hrot += 10f * k2; T.mouth = .3f; break; }
             default: break;
         }
 
@@ -537,6 +580,11 @@ final class Rig {
             rf.set(mx - (14f + 22f * m), my - 4f, mx + (14f + 22f * m), my + 6f + 28f * m); c.drawOval(rf, mouthP);
             rf.set(mx - 10f - 8f * m, my + 10f + 14f * m, mx + 10f + 8f * m, my + 4f + 28f * m); c.drawOval(rf, tongueP);
         }
+        else if (expr == Expr.ANGRY || expr == Expr.SAD) {          // small frown under the beak
+            strokeP.setStrokeWidth(7f); strokeP.setAlpha(alpha);
+            final float mx = 320f + beakShift;
+            rf.set(mx - 20f, 410f, mx + 20f, 432f); c.drawArc(rf, 200f, 140f, false, strokeP);
+        }
         // beak
         c.save(); c.translate(beakShift, -m * 9f);
         part(c, a.beak, PartLayout.PG_BEAK_L, PartLayout.PG_BEAK_T);
@@ -608,8 +656,9 @@ final class Rig {
         final float y = cy - 54f - (b > 0 ? b * 12f : 0f);
         // inner end (toward the beak) / outer end. side=-1 is the left eye, whose inner end is on the right.
         final float xi = cx - side * -20f, xo = cx + side * -20f;
-        final float yi = b > 0 ? y + 4f : y + 4f + abs(b) * 10f;     // worried (b<0): inner end drops
-        final float yo = b > 0 ? y - b * 4f : y;
+        float yi = b > 0 ? y + 4f : y + 4f + abs(b) * 10f;     // angry (b<0): inner end drops
+        float yo = b > 0 ? y - b * 4f : y;
+        if (expr == Expr.SAD && b < 0) { yi = y - abs(b) * 9f; yo = y + 6f; }   // sad: inner end rises
         c.drawLine(xo, yo, xi, yi, strokeP);
         strokeP.setAlpha(255);
     }

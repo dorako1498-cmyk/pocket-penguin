@@ -29,8 +29,14 @@ final class TalkData {
 
     private static void add(long req, long any, long not, int wt, String script) { add(CHAT, 0, req, any, not, wt, script); }
     private static void add(int kind, int sp, long req, long any, long not, int wt, String script) {
-        final String[] ls = script.split("\\|"); final Pat p = new Pat();
+        final Pat p = parse(script);
         p.req = req; p.any = any; p.not = not; p.wt = wt; p.kind = kind; p.sp = sp; p.id = L.size();
+        L.add(p);
+    }
+    /** One dialogue in the script format above (also used for the lines of the engine's scenes). */
+    static Pat parse(String script) {
+        final String[] ls = script.split("\\|"); final Pat p = new Pat();
+        p.kind = CHAT; p.id = -1;
         p.who = new byte[ls.length]; p.emo = new byte[ls.length]; p.text = new String[ls.length];
         for (int i = 0; i < ls.length; i++) {
             final String s = ls[i]; final int c = s.indexOf(':');
@@ -38,7 +44,7 @@ final class TalkData {
             p.emo[i] = (byte) (c > 1 ? s.charAt(1) : 0);
             p.text[i] = s.substring(c + 1);
         }
-        L.add(p);
+        return p;
     }
     private static void any(int wt, String s) { add(0, 0, 0, wt, s); }
 

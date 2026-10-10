@@ -119,6 +119,9 @@ final class Talk {
         cur = p; line = 0; gap = false; startLine();
     }
 
+    /** Play a whole dialogue right now (scene lines), interrupting whatever was being said. */
+    void play(TalkData.Pat p) { cur = p; line = 0; gap = false; startLine(); }
+
     /** Stop everything (screen off, pet left the room ...). */
     void abort() { cur = null; on = false; nextTalk = time + 25f; }
 

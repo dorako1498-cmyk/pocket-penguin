@@ -8,8 +8,9 @@ import android.graphics.Typeface;
 
 /** Small fixed-size particle pool for hearts, "!", "?", sparkles, Zzz, sweat, dust and bolts. Nothing is allocated per frame. */
 final class Fx {
-    static final int HEART = 1, EXCL = 2, QUEST = 3, SPARK = 4, ZZZ = 5, SWEAT = 6, PUFF = 7, BOLT = 8, BUBBLE = 9;
-    private static final int N = 40;
+    static final int HEART = 1, EXCL = 2, QUEST = 3, SPARK = 4, ZZZ = 5, SWEAT = 6, PUFF = 7, BOLT = 8, BUBBLE = 9,
+            ANGER = 10, TEAR = 11, NOTE = 12;   // ANGER: the red "vein" mark, TEAR: falls with gravity, NOTE: a music note
+    private static final int N = 56;
     private final int[] type = new int[N];
     private final float[] x = new float[N], y = new float[N], vx = new float[N], vy = new float[N];
     private final float[] age = new float[N], life = new float[N], size = new float[N], rot = new float[N], vr = new float[N];
@@ -40,7 +41,7 @@ final class Fx {
     void spawn(int t, float px, float py, float pvx, float pvy, float lifeS, float sz) {
         int i = next; next = (next + 1) % N;
         type[i] = t; x[i] = px; y[i] = py; vx[i] = pvx; vy[i] = pvy; age[i] = 0f; life[i] = lifeS; size[i] = sz;
-        rot[i] = (t == HEART || t == SPARK) ? (float) (Math.random() - .5) * 30f : 0f;
+        rot[i] = (t == HEART || t == SPARK || t == NOTE) ? (float) (Math.random() - .5) * 30f : 0f;
         vr[i] = t == SPARK ? 90f : 0f;
     }
 
@@ -53,6 +54,8 @@ final class Fx {
             if (type[i] == ZZZ) vx[i] += 10f * dt;
             if (type[i] == HEART) vy[i] *= (1f - .6f * dt);
             if (type[i] == BUBBLE) vx[i] += (float) Math.sin(age[i] * 6f + i) * 55f * dt;
+            if (type[i] == TEAR) vy[i] += size[i] * 22f * dt;                         // falls
+            if (type[i] == NOTE) vx[i] += (float) Math.sin(age[i] * 7f + i) * 70f * dt;
         }
     }
 
@@ -121,6 +124,26 @@ final class Fx {
                     c.drawCircle(0, 0, s, line);
                     fill.setColor(0xFFFFFFFF); fill.setAlpha((int) (230 * a));
                     c.drawCircle(-s * .35f, -s * .35f, s * .2f, fill);
+                    break;
+                case ANGER: {                                  // four bent strokes around a centre: the classic "anger vein"
+                    final float k = 1f + .12f * (float) Math.sin(age[i] * 18f);
+                    c.scale(s * k, s * k);
+                    line.setStyle(Paint.Style.STROKE); line.setColor(0xFFE8394A); line.setAlpha((int) (255 * a)); line.setStrokeWidth(.22f);
+                    for (int q = 0; q < 4; q++) {
+                        c.save(); c.rotate(q * 90f);
+                        c.drawLine(.18f, -.75f, .18f, -.18f, line); c.drawLine(.18f, -.18f, .75f, -.18f, line);
+                        c.restore();
+                    }
+                    break; }
+                case TEAR:
+                    c.scale(s, s);
+                    fill.setStyle(Paint.Style.FILL); fill.setColor(0xFF5AB4F0); fill.setAlpha((int) (235 * a));
+                    c.drawPath(drop, fill);
+                    fill.setColor(0xFFFFFFFF); fill.setAlpha((int) (200 * a)); c.drawCircle(-.25f, .1f, .18f, fill);
+                    break;
+                case NOTE:
+                    fill.setStyle(Paint.Style.FILL); fill.setTextSize(s * 2f); fill.setColor((i & 1) == 0 ? 0xFFF06A9A : 0xFF5B8FE0); fill.setAlpha((int) (240 * a));
+                    c.drawText((i & 1) == 0 ? "♪" : "♫", 0, s * .7f, fill);
                     break;
                 default: break;
             }

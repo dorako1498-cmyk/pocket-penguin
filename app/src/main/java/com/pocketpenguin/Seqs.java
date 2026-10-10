@@ -24,8 +24,11 @@ final class Seqs {
             R_TOUCH = 34, R_CHARGE_START = 35, R_CHARGE_END = 36, R_TAP_JUMP = 37, R_TAP_FLAP = 38,
             R_TAP_TILT = 39, R_WAKE = 40, RIDE = 41,
             EAT_MEAL = 42, DRINK_WATER = 43, BEG_FOOD = 44, R_FED = 45, R_WATERED = 46, BALL_PLAY = 47,
-            BEG_WATER = 48, WANT_PLAY = 49, R_PLAY = 50, R_REFUSE = 51;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
-    static final int COUNT = 52;
+            BEG_WATER = 48, WANT_PLAY = 49, R_PLAY = 50, R_REFUSE = 51,
+            // emotions + shared scenes with Jinbei (v0.11; the scenes are directed by the engine, see PenguinWallpaperService.Drama)
+            R_ANGRY = 52, R_SULK = 53, R_SAD = 54, R_CRY = 55, R_LAUGH = 56, DANCE_SEQ = 57, R_SCUFFLE = 58,
+            R_APPROACH = 59, R_CHASE = 60, HOLD = 61, R_MAKEUP = 62;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
+    static final int COUNT = 63;
 
     static final Step[][] ALL = new Step[COUNT][];
 
@@ -49,7 +52,7 @@ final class Seqs {
         return cat(go(bowl, State.WALK, 6000), a(st(State.LOOK_AT_FEET, 1300), st(State.LOOK_USER, 1100)),
                 go(G_PACE, State.WALK, 2500), a(st(State.LOOK_USER, 900), st(State.TILT_HEAD, 800)),
                 go(G_PACE, State.WALK, 2500), a(st(State.LOOK_AT_FEET, 1000), st(State.LOOK_USER, 1200), st(State.CONFUSED, 1200),
-                        st(State.SIT, 2500, G_NONE, F_JITTER), st(State.LOOK_USER, 1300)));
+                        st(State.SIT, 2500, G_NONE, F_JITTER), st(State.LOOK_USER, 1300), st(State.SAD, 2200)));
     }
 
     static {
@@ -139,6 +142,17 @@ final class Seqs {
                 go(G_BALL, State.WALK_FAST, 4000), a(st(State.HAPPY, 800)), go(G_BALL, State.WALK_FAST, 4000), a(st(State.JUMP, 1250), st(State.FLAP, 1300), st(State.LOOK_USER, 800)));
         // full: looks at the bowl, shakes itself ("no thanks"), pats down and looks at the user
         ALL[R_REFUSE] = a(st(State.LOOK_AT_FEET, 800), st(State.SHAKE_BODY, 900), st(State.TILT_HEAD, 900), st(State.LOOK_USER, 900));
+        ALL[R_ANGRY] = a(st(State.ANGRY, 2800));
+        ALL[R_SULK] = a(st(State.SULK, 7000));
+        ALL[R_SAD] = a(st(State.SAD, 3000), st(State.LOOK_USER, 900));
+        ALL[R_CRY] = a(st(State.CRY, 3200), st(State.SAD, 1600));
+        ALL[R_LAUGH] = a(st(State.LAUGH, 2600), st(State.HAPPY, 700));
+        ALL[DANCE_SEQ] = a(st(State.DANCE, 5200), st(State.HAPPY, 900), st(State.LOOK_USER, 600));
+        ALL[R_SCUFFLE] = a(st(State.SCUFFLE, 3400), st(State.SHAKE_BODY, 800));
+        ALL[R_APPROACH] = a(st(State.START_WALK, 250, G_TOUCH), st(State.WALK_FAST, 4500, G_KEEP), st(State.STOP_WALK, 350), st(State.BREATHE, 2500));
+        ALL[R_CHASE] = a(st(State.START_WALK, 180, G_TOUCH), st(State.RUN, 3000, G_KEEP), st(State.STOP_WALK, 300), st(State.EXCITED, 900));
+        ALL[HOLD] = a(st(State.BREATHE, 700));
+        ALL[R_MAKEUP] = a(st(State.SHY, 1600), st(State.VERY_HAPPY, 1900), st(State.HAPPY, 900));
         ALL[R_WAKE] = a(st(State.WAKE_UP, 1100), st(State.YAWN, 1000), st(State.LOOK_USER, 800));
     }
 
@@ -149,7 +163,8 @@ final class Seqs {
         "SEEK_ATTENTION", "FOLLOW_TOUCH_SEQ", "CHARGE_REST", "SHY_MOMENT",
         "R_HEAD_PAT", "R_BELLY", "R_MULTI", "R_PET", "R_GREET", "R_WAKE_GREET", "R_TOUCH", "R_CHARGE_START",
         "R_CHARGE_END", "R_TAP_JUMP", "R_TAP_FLAP", "R_TAP_TILT", "R_WAKE", "RIDE",
-        "EAT_MEAL", "DRINK_WATER", "BEG_FOOD", "R_FED", "R_WATERED", "BALL_PLAY", "BEG_WATER", "WANT_PLAY", "R_PLAY", "R_REFUSE" };
+        "EAT_MEAL", "DRINK_WATER", "BEG_FOOD", "R_FED", "R_WATERED", "BALL_PLAY", "BEG_WATER", "WANT_PLAY", "R_PLAY", "R_REFUSE",
+        "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP" };
 
     private Seqs() {}
 }

@@ -14,15 +14,17 @@ import java.util.Random;
 final class Buddy {
     // ---- states
     static final int SNOOZE = 0, STIR = 1, YAWN = 2, IDLE = 3, LOOK = 4, CRAWL = 5, SWIM = 6, WIGGLE = 7, ROLL = 8, BUBBLES = 9,
-            SURPRISE = 10, PETTED = 11, TICKLE = 12, SHY = 13, CALL = 14, CHASE_TAIL = 15, DROWSY = 16, JOY_HOP = 17, EAT_B = 18, DRINK_B = 19, P_BALL = 20;   // P_BALL is only a pick, not a state
+            SURPRISE = 10, PETTED = 11, TICKLE = 12, SHY = 13, CALL = 14, CHASE_TAIL = 15, DROWSY = 16, JOY_HOP = 17, EAT_B = 18, DRINK_B = 19, P_BALL = 20,   // P_BALL is only a pick, not a state
+            ANGRY_B = 21, SULK_B = 22, SAD_B = 23, DANCE_B = 24, LAUGH_B = 25, SCUFFLE_B = 26;   // emotions (v0.11), mostly cued by the engine
     static final String[] NAMES = { "SNOOZE", "STIR", "YAWN", "IDLE", "LOOK", "CRAWL", "SWIM", "WIGGLE", "ROLL", "BUBBLES", "SURPRISE",
-            "PETTED", "TICKLE", "SHY", "CALL", "CHASE_TAIL", "DROWSY", "JOY_HOP", "EAT_B", "DRINK_B" };
+            "PETTED", "TICKLE", "SHY", "CALL", "CHASE_TAIL", "DROWSY", "JOY_HOP", "EAT_B", "DRINK_B", "P_BALL",
+            "ANGRY_B", "SULK_B", "SAD_B", "DANCE_B", "LAUGH_B", "SCUFFLE_B" };
     // ---- things it asks the penguin to do (the engine carries them out)
     static final int PEN_NONE = 0, PEN_GREET = 1, PEN_JUMP = 2, PEN_GOTO = 3, PEN_MOUNT = 4, PEN_DISMOUNT = 5, PEN_FLAP = 6;
     // ---- touch zones
     static final int Z_NONE = 0, Z_HEAD = 1, Z_BELLY = 2, Z_TAIL = 3, Z_BODY = 4;
     // ---- shared-moment phases
-    private static final int D_NONE = 0, D_GO = 1, D_LINGER = 2, D_CALL = 3, D_WAIT = 4, D_MOUNT = 5, D_CARRY = 6, D_NAPGO = 7, D_EAT = 8, D_DRINK = 9;
+    private static final int D_NONE = 0, D_GO = 1, D_LINGER = 2, D_CALL = 3, D_WAIT = 4, D_MOUNT = 5, D_CARRY = 6, D_NAPGO = 7, D_EAT = 8, D_DRINK = 9, D_BEG = 10;
     private static final int K_VISIT = 0, K_BUMP = 1, K_RIDE = 2;
 
     private static final float GROUND = 500f, CX = 400f, EYE_X = 584f, EYE_Y = 338f;
@@ -46,6 +48,11 @@ final class Buddy {
     int hour = 12, amount = 1; boolean raining, penOff, penSleeping, penRiding, penCharging, userBusy; float penX; State penState = State.IDLE;
     // ---- requests to the engine
     int reqPen; float reqX;
+    // ---- v0.11: scenes cued by the engine, food
+    boolean hold;                 // a shared scene is running: stay where you are between cues
+    boolean ateLast;              // set when Jinbei just emptied the food bowl (the engine may let the penguin get angry)
+    private int wantEat;          // 1 food / 2 water: woke up because of the bowl, go there right after the yawn
+    private int moodFace;         // 0 normal, 1 angry brows + frown, 2 sad brows + frown
 
     // ---- animation springs (art units unless noted)
     private final Spring sx = new Spring(3.2f, .5f, 1f), sy = new Spring(3.2f, .5f, 1f), rot = new Spring(2.4f, .45f), tail = new Spring(2.8f, .3f),
@@ -104,7 +111,7 @@ final class Buddy {
             case SURPRISE: fx.spawn(Fx.EXCL, headX(), headY() - 40f * pu, 0f, -45f * pu, 1.1f, 42f * pu); break;
             case CALL: fx.spawn(Fx.EXCL, headX(), headY() - 40f * pu, 0f, -45f * pu, 1.2f, 42f * pu); break;
             case CHASE_TAIL: spinPh = 0f; break;
-            case EAT_B: if (care != null) care.eatB(); break;
+            case EAT_B: if (care != null) { final boolean had = !care.foodEmpty(); care.eatB(); ateLast = had && care.foodEmpty(); } break;
             case DRINK_B: if (care != null) care.drinkB(); break;
             case STIR: case WIGGLE: case JOY_HOP: case TICKLE: break;
             default: break;
@@ -170,6 +177,18 @@ final class Buddy {
         if (state != PETTED) go(PETTED, .8f);
     }
 
+    /** The engine cues a state (scenes: quarrel, dance, laugh ...). faceDir 0 keeps the current facing. */
+    void act(int s, float d, int faceDir) {
+        if (riding()) return;
+        duoAbort(); asleep = false; sleepNext = false; wantWake = false; awakeUntil = Math.max(awakeUntil, time + 60f);
+        if (faceDir != 0) face = faceDir;
+        go(s, d);
+    }
+    /** Swim quickly to gx (running away in a game of tag). */
+    void flee(float gx) { if (riding()) return; duoAbort(); asleep = false; awakeUntil = Math.max(awakeUntil, time + 60f); goTo(gx, true, 5f); vel = face * w * .1f; }
+    float leftLimit() { return w * .30f; }
+    float rightLimit() { return w * .70f; }
+
     void userTouchedPenguin() { if (!asleep && duo == D_NONE && (state == IDLE || state == LOOK) && rnd.nextInt(3) == 0) { faceToward(penX); go(LOOK, 1.8f); lookGoal = 1f; } }
 
     private void duoAbort() { if (duo != D_NONE) { if (duo == D_MOUNT || duo == D_CARRY) { carry = false; reqPen = PEN_DISMOUNT; } duo = D_NONE; duoTimer = rr(70f, 140f); hasGoal = false; } }
@@ -182,6 +201,7 @@ final class Buddy {
         final float ph = Math.min(1f, t / Math.max(dur, .01f));
         float vx = 0f, liftT = 0f, sxT = 1f, syT = 1f, rotT = 0f, tailT = 0f, finT = 10f, eyeT = 1f, smT = .5f, moT = 0f, blT = .3f, lkT = 0f, lyT = 0f;
         boolean arrived = false;
+        moodFace = 0;
 
         switch (state) {
             case SNOOZE: {
@@ -267,6 +287,37 @@ final class Buddy {
                 liftT = h * .035f * a; syT = 1f + .06f * a; sxT = 1f - .04f * a; tailT = 30f * (float) Math.sin(time * 12f); finT = 40f + 20f * (float) Math.sin(time * 12f); smT = 1f; eyeT = 0f; blT = .9f;
                 if (nextFx == 0f && ph > .48f) { nextFx = 1f; for (int i = -1; i <= 1; i += 2) fx.spawn(Fx.PUFF, x + i * 150f * ub, baseY - 6f * ub, i * 80f * pu, -10f * pu, .5f, 20f * pu); }
                 break; }
+            // ---------------------------------------------------------------- emotions
+            case ANGRY_B: {                   // puffed up, red cheeks, trembling, fin and tail stiff
+                moodFace = 1; final float tr = (float) Math.sin(t * 26f);
+                sxT = 1.09f; syT = 1.07f; rotT = -4f + 2f * tr; tailT = 20f + 8f * tr; finT = 55f; eyeT = .75f; smT = 0f; blT = 1.4f; moT = 0f;
+                liftT = h * .004f * Math.abs(tr);
+                nextFx -= dt; if (nextFx <= 0f) { nextFx = .75f; fx.spawn(Fx.ANGER, headX() - face * 30f * pu, headY() - 50f * pu, 0f, -12f * pu, .9f, 26f * pu); }
+                break; }
+            case SULK_B: {                    // turned away, eyes shut, little huffs
+                moodFace = 1; eyeT = 0f; smT = .1f; blT = 1.1f; rotT = 4f; tailT = 6f * (float) Math.sin(time * 2f); finT = 8f; syT = .97f + .01f * breathe; sxT = 1.02f;
+                nextFx -= dt; if (nextFx <= 0f) { nextFx = 1.8f; fx.spawn(Fx.PUFF, headX() + face * 30f * pu, headY() + 40f * pu, face * 40f * pu, -10f * pu, .6f, 16f * pu); }
+                break; }
+            case SAD_B: {                     // droopy, teary eyes
+                moodFace = 2; eyeT = .7f; smT = .05f; blT = .4f; rotT = 6f; syT = .96f + .01f * breathe; sxT = 1.03f; tailT = 3f * (float) Math.sin(time * 1.5f); finT = 6f; lyT = .6f;
+                nextFx -= dt; if (nextFx <= 0f) { nextFx = .9f; fx.spawn(Fx.TEAR, headX() - face * 60f * pu, headY() + 10f * pu, -face * 20f * pu, 10f * pu, 1f, 12f * pu); }
+                break; }
+            case DANCE_B: {                   // bobbing to the beat, tail and fin wave, a hop every other beat
+                final float beat = t * 4.2f, sb = (float) Math.sin(beat);
+                liftT = h * .018f * Math.abs((float) Math.cos(beat)); rotT = 7f * sb; tailT = 34f * sb; finT = 40f + 30f * (float) Math.sin(beat + 1f);
+                sxT = 1f + .04f * sb; syT = 1f - .04f * sb; smT = 1f; eyeT = 0f; blT = 1f; moT = .2f;
+                nextFx -= dt; if (nextFx <= 0f) { nextFx = .6f; fx.spawn(Fx.NOTE, headX(), headY() - 40f * pu, face * 20f * pu, -55f * pu, 1.6f, 22f * pu); }
+                break; }
+            case LAUGH_B: {                   // rolling with laughter: shaking, mouth open, eyes squeezed
+                final float ha = Math.abs((float) Math.sin(t * 12f));
+                rotT = -6f + 5f * (float) Math.sin(t * 12f); syT = 1f + .05f * ha; sxT = 1f - .03f * ha; liftT = h * .008f * ha; eyeT = 0f; smT = 1f; blT = 1.1f; moT = .4f + .4f * ha;
+                tailT = 30f * (float) Math.sin(t * 13f); finT = 45f + 20f * ha;
+                nextFx -= dt; if (nextFx <= 0f) { nextFx = .45f; fx.spawn(Fx.SPARK, headX(), headY() - 30f * pu, face * 20f * pu, -60f * pu, .8f, 20f * pu); }
+                break; }
+            case SCUFFLE_B: {                 // tussle: violent wobble (mostly hidden in the dust cloud)
+                moodFace = 1; final float j = (float) Math.sin(t * 29f), k2 = (float) Math.sin(t * 21f + 2f);
+                rotT = 15f * j; vx = face * w * .06f * k2; liftT = h * .015f * Math.abs(j); tailT = 40f * k2; finT = 60f + 30f * j; eyeT = 1.2f; moT = .4f; blT = 1.3f;
+                break; }
             default: break;
         }
 
@@ -307,15 +358,17 @@ final class Buddy {
     private void context(float dt) {
         final State ps = penState;
         if (ps != lastPenState) {
-            if ((ps == State.FALL || ps == State.SLIDE) && !asleep && !riding() && (state == IDLE || state == LOOK || state == CRAWL || state == SWIM) && duo == D_NONE) { faceToward(penX); go(SURPRISE, 1.2f); }
+            if ((ps == State.FALL || ps == State.SLIDE) && !asleep && !riding() && !hold && (state == IDLE || state == LOOK || state == CRAWL || state == SWIM) && duo == D_NONE) { faceToward(penX); if (rnd.nextBoolean()) go(SURPRISE, 1.2f); else go(LAUGH_B, 2.2f); }
             lastPenState = ps;
         }
+        if (hold) return;
         if (asleep || penOff || duo != D_NONE) { if (duo == D_CARRY && !penRiding && t > .6f) { duoAbort(); go(SURPRISE, 1.1f); } return; }
         if (state != IDLE && state != LOOK) return;
         // hungry / thirsty: goes to the bowl by itself
         if (care != null && time > careCool && duo == D_NONE && hour < 23 && hour >= 6) {
-            if (care.bHungry() && !care.foodEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_EAT; goTo(w * Room.FOOD_X, true, 12f); return; }
-            if (care.bThirsty() && !care.waterEmpty()) { careCool = time + 120f + rnd.nextFloat() * 90f; duo = D_DRINK; goTo(w * Room.WATER_X, true, 12f); return; }
+            if (care.bHungry() && !care.foodEmpty()) { careCool = time + 60f + rnd.nextFloat() * 40f; goEat(1); return; }
+            if (care.bThirsty() && !care.waterEmpty()) { careCool = time + 60f + rnd.nextFloat() * 40f; goEat(2); return; }
+            if (care.bHungry() && care.foodEmpty()) { careCool = time + 70f + rnd.nextFloat() * 50f; duo = D_BEG; goTo(bowlSpot(w * Room.FOOD_X), true, 12f); return; }
         }
         // wants to nap next to a sleeping penguin
         if (penSleeping && time > napCool) { napCool = time + 240f; duo = D_NAPGO; final float side = penX > w * .5f ? -1f : 1f; goTo(penX + side * w * .3f, false, 16f); return; }
@@ -341,17 +394,27 @@ final class Buddy {
         if (state == YAWN && sleepNext) { sleepNext = false; go(DROWSY, 2.3f); return; }
         if (state == DROWSY) { asleep = true; go(SNOOZE, rr(9f, 22f)); bub = 0f; return; }
         if (state == STIR) { if (wantWake) { wantWake = false; go(YAWN, 2.2f); return; } go(SNOOZE, rr(10f, 28f)); return; }
-        if (state == YAWN) { asleep = false; go(IDLE, rr(1.5f, 3f)); return; }
+        if (state == YAWN) {
+            asleep = false;
+            if (wantEat != 0) { final int k = wantEat; wantEat = 0; if (k == 1 ? !care.foodEmpty() : !care.waterEmpty()) { goEat(k); return; } }
+            go(IDLE, rr(1.5f, 3f)); return;
+        }
         if (state == PETTED && time < petUntil) { go(PETTED, .7f); return; }
+        if (hold && !asleep) { go(IDLE, .6f); return; }
         if (duo != D_NONE && duoThink()) return;
         if (!asleep && ballChain > 0 && (state == SWIM || state == CRAWL)) { ballChain--; if (ballX >= 0f) { chaseBall(); return; } }
         if (state == EAT_B || state == DRINK_B) { go(WIGGLE, 1.5f); return; }
         final boolean night = hour >= 23 || hour < 6;
+        // a hungry sleeper wakes up when there is something in the bowl
+        if (asleep && !night && care != null && time > careCool && !penRiding) {
+            if (care.bHungry() && !care.foodEmpty()) { careCool = time + 60f; wakeFor(1); return; }
+            if (care.bThirsty() && !care.waterEmpty()) { careCool = time + 60f; wakeFor(2); return; }
+        }
         if (asleep) {
             float wake = night ? .03f : hour < 9 ? .14f : .55f;
             if (penSleeping) wake *= .25f;
             if (time < sleepLock) wake = 0f;
-            if (rnd.nextFloat() < wake) { wake(rr(60f, 130f)); wantWake = true; go(STIR, 1.3f); return; }
+            if (rnd.nextFloat() < wake) { wake(rr(90f, 180f)); wantWake = true; go(STIR, 1.3f); return; }
             if (rnd.nextFloat() < .2f) { go(STIR, 1.5f); return; }
             go(SNOOZE, rr(9f, 22f)); return;
         }
@@ -382,11 +445,25 @@ final class Buddy {
 
     private void chaseBall() { goTo(ballX, true, 9f); }
 
-    /** The user filled a bowl: come and eat / drink (if awake, hungry enough and not busy). */
+    /** Where Jinbei's middle must be so that its head (snout) is over the bowl. */
+    private float bowlSpot(float bowlX) { final float side = x < bowlX ? -1f : 1f; return bowlX + side * 205f * ub; }
+    private void goEat(int kind) {
+        final float bx = w * (kind == 1 ? Room.FOOD_X : Room.WATER_X);
+        duo = kind == 1 ? D_EAT : D_DRINK; goTo(bowlSpot(bx), true, 12f);
+    }
+
+    /** The user filled a bowl: come and eat / drink (hungry enough and not busy). A sleeping Jinbei wakes up for it. */
     void onFilled(int kind) {
-        if (asleep || riding() || duo != D_NONE || care == null) return;
-        if (kind == 1 && care.bFull < .85f) { duo = D_EAT; goTo(w * Room.FOOD_X, true, 12f); }
-        else if (kind == 2 && care.bHyd < .85f) { duo = D_DRINK; goTo(w * Room.WATER_X, true, 12f); }
+        if (riding() || duo != D_NONE || care == null || hold) return;
+        final boolean want = kind == 1 ? care.bFull < .85f : care.bHyd < .85f;
+        if (!want) return;
+        if (asleep || state == DROWSY || state == SNOOZE) { wakeFor(kind); return; }
+        goEat(kind);
+    }
+    /** Wake up because of the bowl: stir, yawn, then go and eat. */
+    private void wakeFor(int kind) {
+        wantEat = kind; asleep = false; wantWake = true; awakeUntil = Math.max(awakeUntil, time + 70f); sleepLock = time + 40f; go(STIR, .9f);
+        fx.spawn(Fx.EXCL, headX(), headY() - 40f * pu, 0f, -45f * pu, 1.1f, 40f * pu);
     }
 
     private boolean duoThink() {
@@ -418,8 +495,9 @@ final class Buddy {
                 carry = false; reqPen = PEN_DISMOUNT; duo = D_LINGER; rideCool = time + 420f;
                 fx.spawn(Fx.HEART, headX(), headY() - 30f * pu, 0f, -60f * pu, 1.6f, 28f * pu);
                 go(WIGGLE, 1.9f); return true;
-            case D_EAT: duo = D_NONE; go(EAT_B, 3.8f); return true;
-            case D_DRINK: duo = D_NONE; go(DRINK_B, 3.2f); return true;
+            case D_EAT: duo = D_NONE; faceToward(w * Room.FOOD_X); go(EAT_B, 3.8f); return true;
+            case D_DRINK: duo = D_NONE; faceToward(w * Room.WATER_X); go(DRINK_B, 3.2f); return true;
+            case D_BEG: duo = D_NONE; faceToward(w * Room.FOOD_X); go(rnd.nextBoolean() ? SAD_B : CALL, 2.6f); return true;
             case D_NAPGO: duo = D_NONE; sleepNext = true; go(YAWN, 2.2f); return true;
             default: duo = D_NONE; return false;
         }
@@ -470,9 +548,18 @@ final class Buddy {
             fill.setColor(0xFF26282E); fill.setAlpha(255); rf.set(EYE_X + lx - rx, EYE_Y + ly - ry, EYE_X + lx + rx, EYE_Y + ly + ry); c.drawOval(rf, fill);
             fill.setColor(0xFFFFFFFF); c.drawCircle(EYE_X + lx + 5f, EYE_Y + ly - ry * .38f, 5.2f, fill);
         }
+        // brows (angry: slanting down towards the snout, sad: rising towards the snout)
+        if (moodFace != 0) {
+            line.setColor(0xFF101114); line.setAlpha(255); line.setStrokeWidth(9f);
+            if (moodFace == 1) c.drawLine(548f + lx * .6f, 286f, 618f + lx * .6f, 306f, line);
+            else c.drawLine(550f + lx * .6f, 304f, 616f + lx * .6f, 284f, line);
+        }
         // mouth (on the pink snout)
         final float m = mouth.p;
-        if (m > .06f) {
+        if (moodFace != 0 && m <= .06f) {                     // frown
+            line.setColor(0xFF101114); line.setStrokeWidth(6f); line.setAlpha(230);
+            rf.set(670f, 428f, 720f, 452f); c.drawArc(rf, 200f, 140f, false, line);
+        } else if (m > .06f) {
             final float ry = 10f + 36f * m;
             rf.set(666f, 436f - ry * .15f, 722f, 436f + ry);
             fill.setColor(0xFF7A2C44); fill.setAlpha(255); c.drawOval(rf, fill);

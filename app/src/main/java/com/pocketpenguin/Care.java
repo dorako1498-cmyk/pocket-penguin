@@ -68,7 +68,7 @@ final class Care {
     void fillWater(long nowMs) { if (water < .5f) { feeds++; lastFedMs = nowMs; } water = 1f; save(); }
     void stroked() { strokes++; if (strokes % 5 == 0) save(); }
     /** The penguin was stroked / patted / fed: a little happier. */
-    void cheer(float v) { pMood = Math.min(1f, pMood + v); }
+    void cheer(float v) { pMood = Math.max(.1f, Math.min(1f, pMood + v)); }
     /** The user started a game with the ball (big mood boost, but not when spammed). */
     void played(long nowMs) { if (lastPlayMs < 0 || nowMs - lastPlayMs > 20000L) cheer(.35f); lastPlayMs = nowMs; save(); }
 

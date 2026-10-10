@@ -51,7 +51,7 @@ public class PenguinWallpaperService extends WallpaperService {
         float downX, downY, lastX, lastY, pathLen; long downT; int zone = Z_NONE; boolean petting; float petDir; int taps; long lastTapMs;
 
         // fx emitters
-        float emitHeart, emitZ, emitSpark, emitDust;
+        float emitHeart, emitZ, emitSpark, emitDust, emitMood, lastMultiAt = -100f;
 
         final Runnable loop = new Runnable() {
             @Override public void run() {
@@ -95,6 +95,7 @@ public class PenguinWallpaperService extends WallpaperService {
             decor = new Decor(care, room, prefs.getInt("decor_seen", 0));
             talk = new Talk(); talkOn = prefs.getBoolean("talk", true);
             buddyOn = prefs.getBoolean("buddy", true);
+            testScene = prefs.getInt("test_scene", 0);
             final IntentFilter f = new IntentFilter();
             f.addAction(Intent.ACTION_POWER_CONNECTED); f.addAction(Intent.ACTION_POWER_DISCONNECTED);
             f.addAction(Intent.ACTION_SCREEN_ON); f.addAction(Intent.ACTION_USER_PRESENT);
@@ -139,7 +140,7 @@ public class PenguinWallpaperService extends WallpaperService {
         @Override public void onVisibilityChanged(boolean v) {
             visible = v;
             handler.removeCallbacks(loop);
-            if (!v && care != null) { care.save(); if (talk != null) talk.abort(); }
+            if (!v && care != null) { care.save(); if (talk != null) talk.abort(); endScene(); }
             if (v && laidOut) {
                 lastFrame = SystemClock.uptimeMillis(); lastTickMs = 0L;
                 readClock(); readBattery();
@@ -196,6 +197,7 @@ public class PenguinWallpaperService extends WallpaperService {
             decor.update(dt, System.currentTimeMillis(), brain.x, brain.face, brain.state.isMove() && !brain.riding, brain.state == State.JUMP || brain.state == State.BIG_JUMP,
                     buddy.x, buddy.face, buddy.state == Buddy.CRAWL || buddy.state == Buddy.SWIM || buddy.state == Buddy.ROLL);
             if (decor.ballMoving()) talk.sticky(TalkData.BALL, 40f);
+            updateScenes(dt);
             updateTalk(dt);
             if (brain.kickDir != 0) { rig.kick(brain.kickDir); brain.kickDir = 0; }
             rig.update(dt, brain.in);
@@ -218,6 +220,7 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (buddyOn && !bFront) buddy.draw(c, bart);
                 if (brain.state != State.OFF_SCREEN && art != null) { rig.draw(c, art, brain.x, brain.groundY, brain.u * brain.depth(), brain.face, 255, 0f); if (brain.inBed()) room.drawBedFront(c); }
                 if (bFront) buddy.draw(c, bart);
+                drawCloud(c);
                 decor.drawBowls(c);
                 fx.draw(c);
                 room.drawFront(c);
@@ -276,6 +279,14 @@ public class PenguinWallpaperService extends WallpaperService {
                 case PET: emitHeart -= dt; if (emitHeart <= 0f) { emitHeart = .26f; burst(Fx.HEART, 1, 170f, 110f, 1.7f, 32f); } break;
                 case VERY_HAPPY: emitHeart -= dt; if (emitHeart <= 0f) { emitHeart = .45f; burst(Fx.HEART, 1, 170f, 100f, 1.6f, 30f); } break;
                 case HAPPY: emitSpark -= dt; if (emitSpark <= 0f) { emitSpark = .9f; burst(Fx.SPARK, 1, 190f, 60f, .9f, 20f); } break;
+                case ANGRY: emitMood -= dt; if (emitMood <= 0f) { emitMood = .7f; fx.spawn(Fx.ANGER, headX() + 130f * u * brain.face, headY() - 40f * u, 0f, -15f * u, .9f, 30f * u);
+                    fx.spawn(Fx.PUFF, headX(), headY() - 120f * u, (random.nextFloat() - .5f) * 40f * u, -60f * u, .7f, 18f * u); } break;
+                case SULK: emitMood -= dt; if (emitMood <= 0f) { emitMood = 2f; fx.spawn(Fx.PUFF, headX() - 120f * u * brain.face, headY() + 40f * u, -brain.face * 50f * u, -12f * u, .6f, 20f * u); } break;
+                case SAD: emitMood -= dt; if (emitMood <= 0f) { emitMood = 1.5f; fx.spawn(Fx.TEAR, headX() + (random.nextBoolean() ? -90f : 90f) * u, headY() + 10f * u, 0f, 20f * u, 1.1f, 16f * u); } break;
+                case CRY: emitMood -= dt; if (emitMood <= 0f) { emitMood = .22f; final float sd = random.nextBoolean() ? -1f : 1f;
+                    fx.spawn(Fx.TEAR, headX() + sd * 95f * u, headY() + 5f * u, sd * 70f * u, -40f * u, 1.1f, 17f * u); } break;
+                case DANCE: emitMood -= dt; if (emitMood <= 0f) { emitMood = .45f; fx.spawn(Fx.NOTE, headX() + (random.nextFloat() - .5f) * 220f * u, headY() - 60f * u, (random.nextFloat() - .5f) * 50f * u, -70f * u, 1.6f, 26f * u); } break;
+                case LAUGH: emitMood -= dt; if (emitMood <= 0f) { emitMood = .4f; burst(Fx.SPARK, 1, 170f, 80f, .8f, 20f); } break;
                 case FLAP: case EXCITED: case BIG_JUMP: emitSpark -= dt; if (emitSpark <= 0f) { emitSpark = .35f; burst(Fx.SPARK, 1, 200f, 70f, .8f, 20f); } break;
                 default: break;
             }
@@ -289,6 +300,168 @@ public class PenguinWallpaperService extends WallpaperService {
             if (ay > 20f && ay < 462f && dx < 285f) return Z_HEAD;
             if (ay >= 462f && ay < 800f && dx < 300f) return (dx < 190f && ay > 520f) ? Z_BELLY : Z_BODY;
             return Z_NONE;
+        }
+
+
+        // ================================================================== scenes with Jinbei (v0.11): quarrel, tag, dance
+        static final int SC_NONE = 0, SC_QUARREL = 1, SC_TAG = 2, SC_DANCE = 3;
+        int testScene;   // CI hook: prefs "test_scene" starts that scene as soon as possible (screenshots)
+        int scene, scPhase, scRound, lastBuddyState = -1; float scT, scClock, scCool = 75f, scFxT, cloudOn; boolean scFlag, scMediated;
+        final android.graphics.Paint cloudP = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG), cloudL = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+        boolean scenesOk() {
+            return buddyOn && !brain.offscreenState() && !brain.sleeping() && !brain.asleepish() && !brain.riding && !buddy.riding()
+                    && !brain.charging && ((hour >= 6 && hour < 23) || testScene < 0);
+        }
+        boolean penFree() { final State s = brain.state; return !petting && !buddyPetting && (s == State.IDLE || s.isCalm() || s == State.WALK) && brain.seqId != Seqs.EAT_MEAL && brain.seqId != Seqs.DRINK_WATER; }
+        int towardBuddy() { return buddy.x > brain.x ? 1 : -1; }
+        int towardPen() { return brain.x > buddy.x ? 1 : -1; }
+        void script(String s) { if (talkOn && buddyOn) talk.play(TalkData.parse(s)); }
+        String pickOf(String... a) { return a[random.nextInt(a.length)]; }
+
+        void startScene(int kind, int reason) {
+            scene = kind; scPhase = 0; scT = 0f; scRound = 0; scFlag = false; scMediated = false;
+            brain.hold = true; buddy.hold = true;
+            switch (kind) {
+                case SC_QUARREL: {
+                    final float side = brain.x < buddy.x ? -1f : 1f;
+                    brain.touchX = Math.max(w * .17f, Math.min(w * .83f, buddy.x + side * w * .24f)); brain.react(Seqs.R_APPROACH);
+                    buddy.act(Buddy.IDLE, 8f, side > 0 ? 1 : -1);
+                    scRound = reason; break; }
+                case SC_TAG:
+                    script(pickOf("P!:まてまて〜！|J~:つかまらないの〜！", "P:ジンベエ、おにごっこしよ！|J~:こっちなの〜！", "J~:ペンちゃん、おいかけっこ、なの〜！|P!:よーし、まてー！"));
+                    tagRound(); break;
+                default:
+                    brain.face = towardBuddy(); brain.react(Seqs.DANCE_SEQ); buddy.act(Buddy.DANCE_B, 5.4f, towardPen());
+                    script(pickOf("P~:♪ るんるん〜|J~:♪ ふりふり、なの〜|P*:ジンベエ、じょうず！", "J~:おどりたい、きぶんなの〜|P~:いっしょにおどろう！♪", "P~:♪ ぺんぺん、ぺんぎん〜|J~:♪ じんじん、じんべえ〜"));
+                    break;
+            }
+        }
+        void tagRound() {
+            final float target = buddy.x < w * .5f ? buddy.rightLimit() - w * .02f : buddy.leftLimit() + w * .02f;
+            buddy.flee(target);
+            brain.touchX = Math.max(w * .17f, Math.min(w * .83f, target + (brain.x < target ? -1f : 1f) * w * .16f));
+            brain.react(Seqs.R_CHASE); scT = 0f;
+        }
+        void endScene() {
+            if (scene == SC_NONE) return;
+            scene = SC_NONE; brain.hold = false; buddy.hold = false; cloudOn = 0f;
+            scCool = scClock + 110f + random.nextFloat() * 110f;
+        }
+        /** The user tapped one of the two during a quarrel: they stop and make up. */
+        boolean mediate(float tx, float ty) {
+            if (scene != SC_QUARREL || scPhase < 1 || scPhase > 4) return false;
+            fx.spawn(Fx.SPARK, tx, ty, 0f, -40f * brain.u, .9f, 30f * brain.u);
+            script(pickOf("P:…あっ、ひと…|J:けんか、とめてくれたの…？|P:ごめんね、ジンベエ|J*:ぼくも、ごめんなの…", "J:…ひとが、みてたの…|P:…けんかは、やめよっか|J*:うん…なかなおり、なの"));
+            scMediated = true; quarrelPhase(5); return true;
+        }
+
+        void quarrelPhase(int p) {
+            scPhase = p; scT = 0f; scFlag = false;
+            final int tb = towardBuddy(), tp = towardPen();
+            switch (p) {
+                case 1:
+                    brain.face = tb; brain.react(Seqs.R_ANGRY); buddy.act(Buddy.ANGRY_B, 5.8f, tp);
+                    if (scRound == 1) script(pickOf("P!:あーっ！ぼくのごはん、たべたでしょ！|J:だって…おなか、すいてたの…|P:ぼくもすいてたもん！|J:むぅ…！",
+                            "P!:ごはん、ぜんぶたべちゃったの！？|J:…ちょっとだけ、のつもりだったの…|P:ぜんぶじゃん！"));
+                    else script(pickOf("P:ねえ、ぼくのクッション、つかったでしょ！|J:つかってないの…|P:へこんでるもん！|J:…ちょっとだけなの！",
+                            "J:ペンちゃん、さっき、ぶつかったの…|P:ぶつかってないよ！|J:ぶつかったの！|P:ぶつかってなーい！",
+                            "P:ボールはぼくのばんだよ！|J:ちがうの、ぼくのばんなの！|P:ぼく！|J:ぼくなの！",
+                            "J:ペンちゃんの、いびき、うるさかったの…|P!:えっ！ジンベエだって、ぷくぷくうるさいもん！|J:むぅぅ…！"));
+                    break;
+                case 2:
+                    brain.react(Seqs.R_SCUFFLE); buddy.act(Buddy.SCUFFLE_B, 3.4f, tp); break;
+                case 3:
+                    brain.face = -tb; brain.react(Seqs.R_SULK); buddy.act(Buddy.SULK_B, 7f, -tp);
+                    script(pickOf("P:ふんっ！|J:…ふん、なの…", "P:もう、しらない！|J:…ぷいっ、なの", "J:…ぷんぷん、なの|P:ぼくだって、ぷんぷんだもん！"));
+                    break;
+                case 4:
+                    brain.face = tb; brain.react(random.nextInt(3) == 0 ? Seqs.R_CRY : Seqs.R_SAD); buddy.act(Buddy.SAD_B, 3.4f, tp);
+                    script(pickOf("P:…ちょっと、いいすぎたかな…|J:…さみしいの…", "J:…ペンちゃん…|P:…ジンベエ…"));
+                    break;
+                case 5:
+                    brain.face = tb; brain.react(Seqs.R_MAKEUP); buddy.act(Buddy.WIGGLE, 3.6f, tp);
+                    if (!scMediated) script(pickOf("P:…ごめんね、ジンベエ|J:ぼくも、ごめんなの…|P*:なかなおり！|J*:なかよし、なの〜",
+                            "J:ペンちゃん…ごめんなの…|P:ううん、ぼくこそ、ごめん！|J*:えへへ…", "P:ねえ…いっしょに、ボールしよ？|J*:…うん！なかなおりなの！"));
+                    final float mx = (brain.x + buddy.x) * .5f, my = headY() - 40f * brain.u;
+                    for (int i = 0; i < 5; i++) fx.spawn(Fx.HEART, mx + (random.nextFloat() - .5f) * w * .15f, my, (random.nextFloat() - .5f) * 60f * brain.u, -70f * brain.u, 1.8f, 30f * brain.u);
+                    care.cheer(.12f); break;
+                default: break;
+            }
+        }
+
+        void updateScenes(float dt) {
+            scClock += dt;
+            cloudOn += ((scene == SC_QUARREL && scPhase == 2 ? 1f : 0f) - cloudOn) * Math.min(1f, dt * 7f);
+            if (!buddyOn) { endScene(); return; }
+            if (testScene > 0 && scene == SC_NONE && !brain.offscreenState() && w > 0 && scClock > 1.5f) { final int k = testScene; testScene = -1; startScene(k, 0); return; }
+            // things Jinbei does that the penguin reacts to
+            final int bs = buddy.state;
+            if (bs != lastBuddyState) {
+                if (scene == SC_NONE && (bs == Buddy.ROLL || bs == Buddy.CHASE_TAIL) && scenesOk() && penFree() && random.nextInt(2) == 0) { brain.face = towardBuddy(); brain.react(Seqs.R_LAUGH); }
+                lastBuddyState = bs;
+            }
+            if (buddy.ateLast) { buddy.ateLast = false; if (scene == SC_NONE && care.pHungry() && scenesOk() && random.nextInt(3) != 0) { startScene(SC_QUARREL, 1); return; } }
+            if (scene == SC_NONE) {
+                if (scClock > scCool && scenesOk() && penFree() && (!buddy.asleep || random.nextInt(4) == 0)) {
+                    final float dance = care.pMood > .7f ? 40f : 18f, tag = 34f, quarrel = care.pMood > .8f ? 18f : 30f;
+                    float r = random.nextFloat() * (dance + tag + quarrel);
+                    startScene(r < dance ? SC_DANCE : r < dance + tag ? SC_TAG : SC_QUARREL, 0);
+                } else if (scClock > scCool) scCool = scClock + 15f;
+                return;
+            }
+            if (!scenesOk()) { endScene(); return; }
+            scT += dt;
+            switch (scene) {
+                case SC_QUARREL:
+                    switch (scPhase) {
+                        case 0: if ((scT > 2f && !brain.state.isMove()) || scT > 6.5f) quarrelPhase(1); break;
+                        case 1: if (!scFlag && scT > 2.8f) { scFlag = true; brain.react(Seqs.R_ANGRY); } if (scT > 5.6f) quarrelPhase(2); break;
+                        case 2: {
+                            scFxT -= dt;
+                            if (scFxT <= 0f) {
+                                scFxT = .18f; final float cx = (brain.x + buddy.x) * .5f, cy = brain.groundY - 300f * brain.u, rr = w * .14f;
+                                final float a = random.nextFloat() * 6.2832f;
+                                final int t = random.nextInt(3);
+                                fx.spawn(t == 0 ? Fx.ANGER : t == 1 ? Fx.SPARK : Fx.PUFF, cx + (float) Math.cos(a) * rr, cy + (float) Math.sin(a) * rr * .6f,
+                                        (float) Math.cos(a) * 90f * brain.u, (float) Math.sin(a) * 60f * brain.u - 30f * brain.u, .6f, 26f * brain.u);
+                            }
+                            if (scT > 3.4f) quarrelPhase(3); break; }
+                        case 3: if (scT > 7f) quarrelPhase(4); break;
+                        case 4: if (scT > 3.4f) quarrelPhase(5); break;
+                        default: if (scT > 4.6f) endScene(); break;
+                    }
+                    break;
+                case SC_TAG:
+                    if (scRound < 3) { if (scT > 2.8f) { scRound++; if (scRound < 3) tagRound(); else { scT = 0f; brain.face = towardBuddy(); brain.react(Seqs.R_LAUGH); buddy.act(Buddy.LAUGH_B, 2.8f, towardPen());
+                        script(pickOf("P:あはは！ジンベエ、はやい〜！|J:たのしかったの〜", "J:つかまっちゃったの〜|P*:タッチ！あはは！")); } } }
+                    else if (scT > 3.3f) endScene();
+                    break;
+                default:
+                    if (scT > 6.2f) { care.cheer(.08f); endScene(); }
+                    break;
+            }
+        }
+
+        /** The dust cloud of a cartoon scuffle (drawn over both pets). */
+        void drawCloud(Canvas c) {
+            if (cloudOn < .02f) return;
+            final float cx = (brain.x + buddy.x) * .5f, cy = brain.groundY - 260f * brain.u, R = Math.max(w * .17f, Math.abs(brain.x - buddy.x) * .62f) * (.8f + .2f * cloudOn);
+            cloudP.setStyle(android.graphics.Paint.Style.FILL); cloudL.setStyle(android.graphics.Paint.Style.STROKE); cloudL.setStrokeWidth(Math.max(3f, w * .005f));
+            cloudL.setColor(0xFFB9B2A8); cloudL.setAlpha((int) (255 * cloudOn));
+            for (int pass = 0; pass < 2; pass++) {
+                for (int i = 0; i < 9; i++) {
+                    final float ang = i * .698f + scClock * .8f, wob = .8f + .18f * (float) Math.sin(scClock * 11f + i * 1.7f);
+                    final float px = cx + (float) Math.cos(ang) * R * .62f, py = cy + (float) Math.sin(ang) * R * .34f, pr = R * .36f * wob;
+                    if (pass == 0) c.drawCircle(px, py, pr, cloudL);
+                    else { cloudP.setColor(i % 2 == 0 ? 0xFFF7F3EC : 0xFFEDE6DB); cloudP.setAlpha((int) (250 * cloudOn)); c.drawCircle(px, py, pr, cloudP); }
+                }
+            }
+            cloudP.setColor(0xFFF7F3EC); cloudP.setAlpha((int) (250 * cloudOn)); c.drawCircle(cx, cy, R * .5f, cloudP);
+            // a wing and a tail fin poke out now and then
+            final int peek = ((int) (scClock * 3f)) % 4;
+            if (peek == 1) { cloudP.setColor(0xFF3A3D45); c.drawCircle(cx - R * .7f, cy - R * .1f, R * .1f, cloudP); }
+            if (peek == 3) { cloudP.setColor(0xFF6FA7C9); c.drawCircle(cx + R * .7f, cy + R * .05f, R * .11f, cloudP); }
         }
 
         // ================================================================== care, decor, talk
@@ -360,6 +533,7 @@ public class PenguinWallpaperService extends WallpaperService {
 
         /** The user tapped a bowl: fill it and let the pets react. */
         void feed(int kind, float tx, float ty) {
+            endScene();
             final long now = System.currentTimeMillis();
             final boolean helpful = kind == 1 ? care.food < .5f : care.water < .5f;
             final boolean full = kind == 1 ? care.pStuffed() : care.pQuenched();
@@ -386,6 +560,7 @@ public class PenguinWallpaperService extends WallpaperService {
 
         /** The user tapped the ball: it rolls away and the penguin chases it (the best cure for a bored penguin). */
         void play(float tx, float ty) {
+            endScene();
             decor.flickBall();
             talk.sticky(TalkData.BALL, 60f); talk.kick(6f);
             if (brain.offscreenState() || brain.sleeping() || brain.asleepish() || brain.riding) return;
@@ -468,6 +643,8 @@ public class PenguinWallpaperService extends WallpaperService {
             if (bowl != 0) { taps = 0; lastTapTarget = 2; gaze(tx, ty); feed(bowl, tx, ty); return; }
             if (decor.ballHit(tx, ty)) { taps = 0; lastTapTarget = 2; gaze(tx, ty); play(tx, ty); return; }
             if (brain.offscreenState()) return;
+            if (scene == SC_QUARREL && (hitZone(tx, ty) != Z_NONE || (buddyOn && buddy.zoneAt(tx, ty) != Buddy.Z_NONE)) && mediate(tx, ty)) return;
+            if (scene != SC_NONE && scene != SC_QUARREL) endScene();
             final long now = SystemClock.uptimeMillis();
             taps = (now - lastTapMs < 1000L) ? taps + 1 : 1; lastTapMs = now;
             final int z0 = hitZone(tx, ty);
@@ -492,7 +669,11 @@ public class PenguinWallpaperService extends WallpaperService {
                 if (brain.state != State.PET) { brain.react(Seqs.R_PET); care.cheer(.1f); }
                 return;
             }
-            if (taps >= 3) { brain.react(Seqs.R_MULTI); taps = 0; return; }
+            if (taps >= 3) {
+                if (brain.time - lastMultiAt < 25f) { brain.react(Seqs.R_ANGRY); care.cheer(-.08f); if (talkOn) talk.say(0, '!', "もう〜！つんつんしないで〜！/しつこいよ〜！ぷんぷん！"); }
+                else brain.react(Seqs.R_MULTI);
+                lastMultiAt = brain.time; taps = 0; return;
+            }
             if (z == Z_HEAD) { brain.react(Seqs.R_HEAD_PAT); care.cheer(.05f); }
             else if (z == Z_BELLY) brain.react(Seqs.R_BELLY);
             else { final int r = random.nextInt(4); brain.react(r == 0 ? Seqs.R_TAP_TILT : r == 1 ? Seqs.R_TAP_FLAP : r == 2 ? Seqs.R_TAP_JUMP : Seqs.R_GREET); }
