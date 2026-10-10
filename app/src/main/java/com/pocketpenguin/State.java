@@ -22,7 +22,9 @@ enum State {
     // emotions (v0.11): anger, sulking (back turned), sadness, crying, laughing, dancing, a cartoon scuffle
     ANGRY, SULK, SAD, CRY, LAUGH, DANCE, SCUFFLE,
     // v0.12: hiding (hide-and-seek, crouched behind the bed), brushing teeth
-    HIDE, BRUSH;
+    HIDE, BRUSH,
+    // v0.13: wink, smug (ドヤ顔), sneeze, handstand and somersault (tricks learnt with なつき度)
+    WINK, SMUG, SNEEZE, HANDSTAND, FLIP;
 
     boolean isMove() {
         switch (this) {

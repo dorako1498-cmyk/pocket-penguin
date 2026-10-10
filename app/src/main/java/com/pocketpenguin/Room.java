@@ -58,6 +58,21 @@ final class Room {
     int w, h; float ballX = -1f;      // the toy ball (moved by Decor)
     static final float FOOD_X = .40f, WATER_X = .60f;   // the two bowls stand in the foreground (closer to the viewer than the pets)
     float bowlY;                                        // floor line of the bowls (below / in front of the pets' feet)
+    // ---- v0.13: room theme (模様替え), thunder, light
+    static final int[][] WALLS = { { 0xFFF6E4D4, 0xFFE9D3BF }, { 0xFFDDF0E6, 0xFFCBE3D6 }, { 0xFFDCEBF7, 0xFFC9DCEC }, { 0xFFE9E1F4, 0xFFD9CFEA }, { 0xFFFBE0D2, 0xFFF0CDBB } };
+    static final int[][] FLOORS = { { 0xFFCF9C69, 0xFFE6BB8C }, { 0xFF8F6142, 0xFFA9785A }, { 0xFFD9C3A3, 0xFFEBDCC4 }, { 0xFF9FA3A8, 0xFFBFC3C7 } };
+    static final int[][] RUGS = { { 0xFFF3B7B0, 0xFFFAD2C9 }, { 0xFFA9CBEA, 0xFFCFE2F4 }, { 0xFFB9DDB0, 0xFFD7EDCF }, { 0xFFF3D98B, 0xFFFAE8B6 } };
+    static final String[] WALL_NAMES = { "クリーム", "ミント", "そらいろ", "ラベンダー", "ピーチ" }, FLOOR_NAMES = { "はちみつ", "ウォルナット", "ホワイトオーク", "グレー" }, RUG_NAMES = { "ピンク", "ブルー", "グリーン", "イエロー" };
+    private int wallC = 0xFFF6E4D4, sideC = 0xFFE9D3BF, floorA = 0xFFCF9C69, floorB = 0xFFE6BB8C, rugA = 0xFFF3B7B0, rugB = 0xFFFAD2C9;
+    int themeKey = -1;
+    /** Choose wall / floor / rug colours (takes effect on the next layout). */
+    void setTheme(int wall, int floor, int rug) {
+        wall = Math.max(0, Math.min(WALLS.length - 1, wall)); floor = Math.max(0, Math.min(FLOORS.length - 1, floor)); rug = Math.max(0, Math.min(RUGS.length - 1, rug));
+        wallC = WALLS[wall][0]; sideC = WALLS[wall][1]; floorA = FLOORS[floor][0]; floorB = FLOORS[floor][1]; rugA = RUGS[rug][0]; rugB = RUGS[rug][1];
+        themeKey = wall * 100 + floor * 10 + rug;
+    }
+    float flash; boolean thunderEvent; private boolean flash2; private float thunderClock = 25f;
+    private RadialGradient poolGlow; private final Matrix poolM = new Matrix();
     float winL, winT, winR, winB, groundY, wallBottom, lampX, lampY, clockX, clockY, clockR, chargerX, chargerY, bedX, cushionX;
     private final RectF rfA = new RectF(), rfB = new RectF(), rfC = new RectF();
     private Bitmap furniture;
@@ -107,6 +122,7 @@ final class Room {
         buildFurniture(new Canvas(furniture));
         float gr = w * .55f;
         lampGlow = new RadialGradient(0f, 0f, gr, new int[] { 0xCCFFE2A0, 0x55FFC870, 0x00FFB050 }, new float[] { 0f, .45f, 1f }, Shader.TileMode.CLAMP);
+        poolGlow = new RadialGradient(0f, 0f, w * .3f, new int[] { 0x70FFDB94, 0x30FFC870, 0x00FFB050 }, new float[] { 0f, .5f, 1f }, Shader.TileMode.CLAMP);
     }
 
     void release() { if (furniture != null) { furniture.recycle(); furniture = null; } }
@@ -193,6 +209,9 @@ final class Room {
         if (cur.snow > .02f) for (int i = 0; i < NS; i++) { sy[i] += sv[i] * dt; sp[i] += dt * 1.1f; if (sy[i] > 1f) { sy[i] -= 1f; sx[i] = rnd.nextFloat(); } }
         if (cur.clouds > .02f) for (int i = 0; i < NCLOUD; i++) { cx[i] += cv[i] * dt; if (cx[i] > 1.3f) cx[i] = -.3f; }
         if (charging) chargePulse += dt;
+        // thunder: a double flash now and then while it rains
+        if (cur.rain > .5f) { thunderClock -= dt; if (thunderClock <= 0f) { thunderClock = 35f + rnd.nextFloat() * 45f; flash = 1f; flash2 = true; thunderEvent = true; } }
+        if (flash > 0f) { flash = Math.max(0f, flash - dt * 2.4f); if (flash2 && flash <= .5f) { flash2 = false; flash = .85f; } }   // flash, dim, second flash
     }
     private int bucketHourGuess() { return bucket == 0 ? 0 : bucket == 1 ? 7 : bucket == 2 ? 12 : bucket == 3 ? 17 : 21; }
 
@@ -219,14 +238,14 @@ final class Room {
     private void buildFurniture(Canvas c) {
         p.setStyle(Paint.Style.FILL); p.setShader(null); p.setXfermode(null);
         // wall
-        p.setColor(0xFFF6E4D4); c.drawRect(0, 0, w, wallBottom, p);
+        p.setColor(wallC); c.drawRect(0, 0, w, wallBottom, p);
         p.setColor(0x14C98B6B);
         for (float x = w * .05f; x < w; x += w * .125f) c.drawRect(x, 0, x + w * .05f, wallBottom, p);      // soft stripes
         // wall shadow near ceiling
         p.setColor(0x10000000); c.drawRect(0, 0, w, h * .012f, p);
         // floor in soft perspective: darker at the back, boards run towards a vanishing point above the room,
         // cross seams get wider towards the viewer
-        band(c, 0xFFCF9C69, 0xFFE6BB8C, 0, wallBottom, w, h);
+        band(c, floorA, floorB, 0, wallBottom, w, h);
         p.setColor(0x26A06B3C); p.setStrokeWidth(Math.max(2f, w * .003f));
         final float vpx = w * .5f, vpy = wallBottom - h * .55f, spread = (h - vpy) / (wallBottom - vpy);
         for (int i = -7; i <= 7; i++) { final float xb = vpx + i * w * .085f; c.drawLine(xb, wallBottom, vpx + (xb - vpx) * spread, h, p); }
@@ -263,16 +282,16 @@ final class Room {
         // seen in perspective (darker, with their floor edge running towards the viewer)
         final float cl = w * .045f, cr = w - cl, ex = vpx + (cl - vpx) * spread, exr = vpx + (cr - vpx) * spread;
         path.reset(); path.moveTo(0, 0); path.lineTo(cl, 0); path.lineTo(cl, wallBottom); path.lineTo(ex, h); path.lineTo(0, h); path.close();
-        p.setColor(0xFFE9D3BF); c.drawPath(path, p);
+        p.setColor(sideC); c.drawPath(path, p);
         path.reset(); path.moveTo(w, 0); path.lineTo(cr, 0); path.lineTo(cr, wallBottom); path.lineTo(exr, h); path.lineTo(w, h); path.close();
         c.drawPath(path, p);
         p.setColor(0x18000000); p.setStrokeWidth(Math.max(2f, w * .003f));
         c.drawLine(cl, 0, cl, wallBottom, p); c.drawLine(cr, 0, cr, wallBottom, p);
         p.setColor(0x30A06B3C); c.drawLine(cl, wallBottom, ex, h, p); c.drawLine(cr, wallBottom, exr, h, p);
         // rug
-        ov(c, w * .14f, groundY - h * .03f, w * .86f, groundY + h * .10f, 0xFFF3B7B0);
-        ov(c, w * .19f, groundY - h * .015f, w * .81f, groundY + h * .085f, 0xFFFAD2C9);
-        ov(c, w * .26f, groundY, w * .74f, groundY + h * .07f, 0xFFF3B7B0);
+        ov(c, w * .14f, groundY - h * .03f, w * .86f, groundY + h * .10f, rugA);
+        ov(c, w * .19f, groundY - h * .015f, w * .81f, groundY + h * .085f, rugB);
+        ov(c, w * .26f, groundY, w * .74f, groundY + h * .07f, rugA);
 
         // ---- window
         rr(c, winL - w * .018f, winT - w * .018f, winR + w * .018f, winB + w * .018f, w * .02f, 0xFFFFFFFF);
@@ -365,7 +384,7 @@ final class Room {
     /** Sky + weather (behind the furniture bitmap, which has a transparent window pane). */
     void drawBack(Canvas c, int hour, int minute) {
         p.setStyle(Paint.Style.FILL); p.setShader(null);
-        c.drawColor(0xFFF6E4D4);
+        c.drawColor(wallC);
         final Look k = cur; final float pw = winR - winL, ph = winB - winT;
         c.save(); c.clipRect(winL, winT, winR, winB);
         band(c, k.top, k.bot, winL, winT, winR, winB);
@@ -471,6 +490,17 @@ final class Room {
             p.setAlpha(255);
         }
 
+        // dust motes floating in the light shaft (morning / sunny)
+        if (k.shaftA > .1f) {
+            p.setColor(0xFFFFF6D8);
+            for (int i = 0; i < 14; i++) {
+                final float mph = time * .05f + i * .137f, fy = (mph - (float) Math.floor(mph));
+                final float mx = winL + w * (.08f + .5f * (((i * 37) % 13) / 13f)) + fy * w * .14f + (float) Math.sin(time * .7f + i) * w * .01f;
+                final float my = winB + (groundY - winB) * fy;
+                p.setAlpha((int) (200 * k.shaftA * Math.sin(Math.PI * fy))); c.drawCircle(mx, my, w * (.0025f + .0015f * (i % 3)), p);
+            }
+            p.setAlpha(255);
+        }
         // clock hands
         if (clockMin != minute) {
             clockMin = minute; final double ma = minute * Math.PI / 30.0, ha = ((hour % 12) + minute / 60.0) * Math.PI / 6.0;
@@ -523,7 +553,7 @@ final class Room {
         final Look k = cur;
         if (k.tintA > .005f) { c.drawColor((((int) (255 * k.tintA * PET_TINT)) << 24) | (k.tint & 0xFFFFFF)); }
         if (k.lamp > .02f && lampGlow != null) {
-            final float flick = 1f + .035f * Rig.sin(time * 5.3f) * Rig.sin(time * 1.9f);
+            final float flick = 1f + .06f * Rig.sin(time * 5.3f) * Rig.sin(time * 1.9f) + .025f * Rig.sin(time * 13.7f);
             lampM.setTranslate(lampX - w * .02f, lampY + h * .04f); lampGlow.setLocalMatrix(lampM);
             q.setShader(lampGlow); q.setAlpha((int) (255 * Math.min(1f, k.lamp * flick)));
             c.drawRect(0, 0, w, h, q); q.setShader(null); q.setAlpha(255);
@@ -531,7 +561,13 @@ final class Room {
             p.setColor(0xFFFFF0B8); p.setAlpha((int) (255 * k.lamp)); path.reset();
             path.moveTo(lampX - w * .036f, lampY + h * .062f); path.lineTo(lampX + w * .036f, lampY + h * .062f); path.lineTo(lampX + w * .023f, lampY + h * .0f); path.lineTo(lampX - w * .023f, lampY + h * .0f); path.close();
             c.drawPath(path, p); p.setAlpha(255);
+            // warm pool of light on the floor under the lamp (flickers with it)
+            if (poolGlow != null) {
+                poolM.setScale(1f, .32f); poolM.postTranslate(lampX - w * .08f, groundY + h * .03f); poolGlow.setLocalMatrix(poolM);
+                q.setShader(poolGlow); q.setAlpha((int) (255 * Math.min(1f, k.lamp * flick))); c.drawRect(0, groundY - h * .1f, w, h, q); q.setShader(null); q.setAlpha(255);
+            }
         }
+        if (flash > .01f) c.drawColor(((int) (110 * flash) << 24) | 0xFFFFFF);
         if (charging) {
             final float pu = (chargePulse % 1.6f) / 1.6f;
             p.setStyle(Paint.Style.STROKE); p.setStrokeWidth(w * .006f); p.setColor(0xFFFFE04A); p.setAlpha((int) (230 * (1f - pu)));

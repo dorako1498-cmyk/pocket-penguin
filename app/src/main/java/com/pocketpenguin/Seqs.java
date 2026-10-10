@@ -29,8 +29,11 @@ final class Seqs {
             R_ANGRY = 52, R_SULK = 53, R_SAD = 54, R_CRY = 55, R_LAUGH = 56, DANCE_SEQ = 57, R_SCUFFLE = 58,
             R_APPROACH = 59, R_CHASE = 60, HOLD = 61, R_MAKEUP = 62,
             // v0.12: fetching a thrown fish, hide-and-seek, kicking the ball to Jinbei, popping bubbles, yawning, brushing teeth, found!
-            R_FETCH = 63, R_HIDE = 64, R_KICK = 65, R_POP = 66, R_YAWN = 67, R_BRUSH = 68, R_FOUND = 69;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
-    static final int COUNT = 70;
+            R_FETCH = 63, R_HIDE = 64, R_KICK = 65, R_POP = 66, R_YAWN = 67, R_BRUSH = 68, R_FOUND = 69,
+            // v0.13: expressions, tricks, weather, outings
+            R_WINK = 70, R_SMUG = 71, SNEEZE_SEQ = 72, TRICK_HAND = 73, TRICK_FLIP = 74, SUNBATHE = 75, R_TUMBLE = 76,
+            R_SOUVENIR = 77, R_SCARED = 78, R_BUILD = 79, R_GREET_BIG = 80, R_GREET_TOP = 81;   // care + toy sequences (started explicitly by Brain / the engine)   // RIDE: riding on the whale shark's back (started by Buddy, never picked by Brain.think)
+    static final int COUNT = 82;
 
     static final Step[][] ALL = new Step[COUNT][];
 
@@ -163,6 +166,18 @@ final class Seqs {
         ALL[R_YAWN] = a(st(State.YAWN, 1600), st(State.BLINK, 300));
         ALL[R_BRUSH] = a(st(State.BRUSH, 5000), st(State.HAPPY, 700));
         ALL[R_FOUND] = a(st(State.SURPRISED, 600), st(State.LAUGH, 2000), st(State.HAPPY, 600));
+        ALL[R_WINK] = a(st(State.WINK, 1300), st(State.HAPPY, 600));
+        ALL[R_SMUG] = a(st(State.SMUG, 2200), st(State.HAPPY, 600));
+        ALL[SNEEZE_SEQ] = a(st(State.SNEEZE, 1700), st(State.CONFUSED, 900), st(State.SHAKE_BODY, 700));
+        ALL[TRICK_HAND] = a(st(State.EXCITED, 600), st(State.HANDSTAND, 2800), st(State.SMUG, 1600));
+        ALL[TRICK_FLIP] = a(st(State.EXCITED, 600), st(State.FLIP, 1700), st(State.SMUG, 1600));
+        ALL[SUNBATHE] = cat(go(G_WINDOW, State.WALK, 7000), a(st(State.SIT, 7000, G_NONE, F_JITTER), st(State.YAWN, 1400), st(State.SIT, 3500), st(State.STRETCH, 2000)));
+        ALL[R_TUMBLE] = a(st(State.FALL, 1500), st(State.CONFUSED, 1100), st(State.GET_UP, 1500), st(State.SHAKE_BODY, 800));
+        ALL[R_SOUVENIR] = a(st(State.EXCITED, 700), st(State.LOOK_AT_FEET, 1000), st(State.SMUG, 1600), st(State.LOOK_USER, 700));
+        ALL[R_SCARED] = a(st(State.SURPRISED, 600), st(State.START_WALK, 150, G_TOUCH), st(State.RUN, 3000, G_KEEP), st(State.STOP_WALK, 250), st(State.SHY, 2600), st(State.CRY, 1800));
+        ALL[R_BUILD] = cat(go(G_TOUCH, State.WALK_FAST, 5000), a(st(State.LOOK_AT_FEET, 1600), st(State.EAT, 2600), st(State.LOOK_AT_FEET, 1400), st(State.EAT, 2400), st(State.JUMP, 1250), st(State.SMUG, 1800)));
+        ALL[R_GREET_BIG] = a(st(State.GREETING_USER, 2000), st(State.VERY_HAPPY, 1300), st(State.SPIN, 1500), st(State.HAPPY, 700));
+        ALL[R_GREET_TOP] = a(st(State.GREETING_USER, 1800), st(State.FLIP, 1700), st(State.VERY_HAPPY, 1200), st(State.WINK, 1000));
         ALL[R_WAKE] = a(st(State.WAKE_UP, 1100), st(State.YAWN, 1000), st(State.LOOK_USER, 800));
     }
 
@@ -174,7 +189,8 @@ final class Seqs {
         "R_HEAD_PAT", "R_BELLY", "R_MULTI", "R_PET", "R_GREET", "R_WAKE_GREET", "R_TOUCH", "R_CHARGE_START",
         "R_CHARGE_END", "R_TAP_JUMP", "R_TAP_FLAP", "R_TAP_TILT", "R_WAKE", "RIDE",
         "EAT_MEAL", "DRINK_WATER", "BEG_FOOD", "R_FED", "R_WATERED", "BALL_PLAY", "BEG_WATER", "WANT_PLAY", "R_PLAY", "R_REFUSE",
-        "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP", "R_FETCH", "R_HIDE", "R_KICK", "R_POP", "R_YAWN", "R_BRUSH", "R_FOUND" };
+        "R_ANGRY", "R_SULK", "R_SAD", "R_CRY", "R_LAUGH", "DANCE", "R_SCUFFLE", "R_APPROACH", "R_CHASE", "HOLD", "R_MAKEUP", "R_FETCH", "R_HIDE", "R_KICK", "R_POP", "R_YAWN", "R_BRUSH", "R_FOUND",
+        "R_WINK", "R_SMUG", "SNEEZE", "TRICK_HAND", "TRICK_FLIP", "SUNBATHE", "R_TUMBLE", "R_SOUVENIR", "R_SCARED", "R_BUILD", "R_GREET_BIG", "R_GREET_TOP" };
 
     private Seqs() {}
 }

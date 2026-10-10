@@ -53,7 +53,8 @@ final class Buddy {
     boolean ateLast;              // set when Jinbei just emptied the food bowl (the engine may let the penguin get angry)
     private int wantEat;          // 1 food / 2 water: woke up because of the bowl, go there right after the yawn
     private int moodFace;         // 0 normal, 1 angry brows + frown, 2 sad brows + frown
-    boolean eatingTreat; float treatX;   // v0.12: going for / eating a fish the user threw (not the bowl)
+    boolean eatingTreat; float treatX;
+    float friend = .2f;                  // v0.13: friendship with the penguin (-1..1, from Care): closer naps and more rides when high, sulks when low   // v0.12: going for / eating a fish the user threw (not the bowl)
 
     // ---- animation springs (art units unless noted)
     private final Spring sx = new Spring(3.2f, .5f, 1f), sy = new Spring(3.2f, .5f, 1f), rot = new Spring(2.4f, .45f), tail = new Spring(2.8f, .3f),
@@ -383,7 +384,10 @@ final class Buddy {
             if (care.bHungry() && care.foodEmpty()) { careCool = time + 70f + rnd.nextFloat() * 50f; duo = D_BEG; goTo(bowlSpot(w * Room.FOOD_X), true, 12f); return; }
         }
         // wants to nap next to a sleeping penguin
-        if (penSleeping && time > napCool) { napCool = time + 240f; duo = D_NAPGO; final float side = penX > w * .5f ? -1f : 1f; goTo(penX + side * w * .3f, false, 16f); return; }
+        if (penSleeping && time > napCool) {
+            napCool = time + 240f * (1f - .5f * Math.max(0f, friend)); duo = D_NAPGO; final float side = penX > w * .5f ? -1f : 1f;
+            goTo(penX + side * w * (friend > .5f ? .17f : .3f), false, 16f); return;      // good friends snuggle up close
+        }
         // shared moments with the penguin
         duoTimer -= dt * (amount == 0 ? .6f : amount == 2 ? 1.5f : 1f);
         if (duoTimer <= 0f) {
@@ -396,7 +400,9 @@ final class Buddy {
     private void startDuo() {
         duoTries = 0;
         final float r = rnd.nextFloat();
-        duoKind = (time > rideCool && r < .35f) ? K_RIDE : r < .65f ? K_VISIT : K_BUMP;
+        if (friend < -.3f && rnd.nextFloat() < .4f) { faceToward(penX); face = -face; go(SULK_B, 3f); duoTimer = rr(60f, 120f); return; }   // not on speaking terms
+        final float rideP = .35f + .2f * friend;
+        duoKind = (time > rideCool && r < rideP) ? K_RIDE : r < .65f + .1f * friend ? K_VISIT : K_BUMP;
         if (duoKind == K_RIDE) { duo = D_CALL; faceToward(penX); rideSpot = x; go(CALL, 1.5f); reqPen = PEN_GOTO; reqX = x; }
         else { duo = D_GO; goTo(penX - (penX > x ? 1f : -1f) * w * .26f, Math.abs(penX - x) > w * .3f, 12f); }
     }

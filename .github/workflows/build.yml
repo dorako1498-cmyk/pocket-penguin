@@ -78,7 +78,7 @@ jobs:
             grep -q Success install.log
             mkdir -p shots
             adb shell am force-stop com.pocketpenguin || true
-            printf '%s\n' "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>" '<map><int name="test_scene" value="9" /></map>' > penguin.xml
+            printf '%s\n' "<?xml version='1.0' encoding='utf-8' standalone='yes' ?>" '<map><int name="test_scene" value="4" /></map>' > penguin.xml
             adb push penguin.xml /data/local/tmp/penguin.xml || true
             adb shell run-as com.pocketpenguin mkdir -p shared_prefs || true
             adb shell run-as com.pocketpenguin cp /data/local/tmp/penguin.xml shared_prefs/penguin.xml || true

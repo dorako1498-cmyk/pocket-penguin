@@ -27,6 +27,7 @@ final class Brain {
     float touchX = -1f;
     Care care; float careCool = 60f, ballCool = 90f, boredCool = 120f, moodCool = 50f;
     boolean hold;                              // a shared scene with Jinbei is running: stay put between the engine's cues
+    float trickCool = 90f, sneezeCool = 120f, sunCool = 60f;
     int begGoal = Seqs.G_FOOD;                 // the bowl BEG_* sequences pace around
     float avoidX = -1f;                        // where the buddy lies: random wandering prefers other spots (it stands in front of the penguin)
 
@@ -66,7 +67,8 @@ final class Brain {
 
     boolean on(String k) { return prefs.getBoolean(k, true); }
     int amount() { return prefs.getInt("speed", 1); }          // 0 calm / 1 normal / 2 lively
-    boolean powerSave() { return prefs.getBoolean("power", false); }
+    boolean sysSaver;                          // the phone's own battery saver is on
+    boolean powerSave() { return sysSaver || prefs.getBoolean("power", false); }
 
     boolean offscreenState() {
         switch (state) { case EXIT_SCREEN: case OFF_SCREEN: case PEEK_FROM_EDGE: case ENTER_SCREEN: return true; default: return false; }
@@ -310,6 +312,13 @@ final class Brain {
                 boredCool = time + 80f + rnd.nextFloat() * 70f;
                 start(care.pMood < .25f && rnd.nextInt(3) == 0 ? Seqs.R_CRY : rnd.nextInt(3) == 0 ? Seqs.R_SAD : Seqs.WANT_PLAY); return;
             }
+            // tricks it has learnt (なつき度 level 3: handstand, level 4: somersault)
+            if (time > trickCool && care.bondLevel() >= 3 && rnd.nextInt(5) == 0) { trickCool = time + 150f + rnd.nextFloat() * 120f; start(care.bondLevel() >= 4 && rnd.nextBoolean() ? Seqs.TRICK_FLIP : Seqs.TRICK_HAND); return; }
+            // a sneeze on cold or rainy days
+            if (time > sneezeCool && (wx == 1 || wx == 2 || cal.get(Calendar.MONTH) <= 1 || cal.get(Calendar.MONTH) == 11) && rnd.nextInt(8) == 0) { sneezeCool = time + 200f + rnd.nextFloat() * 200f; start(Seqs.SNEEZE_SEQ); return; }
+            // sunbathing by the window on sunny days
+            final int sc = room.sceneId();
+            if (time > sunCool && (sc == Room.SUNNY || sc == Room.MORNING || sc == Room.NORMAL_ROOM) && hour >= 8 && hour < 17 && rnd.nextInt(6) == 0) { sunCool = time + 260f + rnd.nextFloat() * 200f; start(Seqs.SUNBATHE); return; }
             // in a really good mood: dances now and then, or laughs to itself
             if (time > moodCool && care.pMood > .8f && rnd.nextInt(4) == 0) { moodCool = time + 70f + rnd.nextFloat() * 80f; start(rnd.nextInt(3) == 0 ? Seqs.R_LAUGH : Seqs.DANCE_SEQ); return; }
             if (time > ballCool && rnd.nextInt(5) == 0 && !asleepish()) { ballCool = time + 100f + rnd.nextFloat() * 140f; care.cheer(.06f); start(Seqs.BALL_PLAY); return; }
@@ -349,6 +358,14 @@ final class Brain {
         // the user was just here
         if (petted) { W[Seqs.SEEK_ATTENTION] = 20f; W[Seqs.FLAP_HAPPY] += 12f; W[Seqs.JUMP_PLAY] += 6f; W[Seqs.SHY_MOMENT] += 3f; W[Seqs.EDGE_EXIT] = 0f; W[Seqs.SLIP] *= .3f; }
         else if (touched) { W[Seqs.SEEK_ATTENTION] = 9f; W[Seqs.WANDER] += 5f; }
+        // personality (grows from how the user plays with it)
+        if (care != null) {
+            switch (care.personality(System.currentTimeMillis())) {
+                case Care.SPOILED: W[Seqs.SEEK_ATTENTION] += 12f; W[Seqs.SHY_MOMENT] += 3f; W[Seqs.EDGE_EXIT] *= .5f; break;
+                case Care.PLAYFUL: W[Seqs.JUMP_PLAY] *= 1.8f; W[Seqs.BIG_JUMP_PLAY] *= 2f; W[Seqs.SPIN_SEQ] *= 2f; W[Seqs.FLAP_HAPPY] *= 1.4f; W[Seqs.EDGE_EXIT] *= 1.6f; break;
+                default: W[Seqs.SIT_REST] *= 1.8f; W[Seqs.COZY_SIT] *= 1.8f; W[Seqs.NAP_NODDING] *= 1.5f; W[Seqs.WANDER] *= .7f; W[Seqs.WINDOW_LONG] *= 1.6f; break;
+            }
+        }
         // hungry, thirsty or bored: glances at the user more often in between
         if (care != null && (care.pHungry() || care.pThirsty() || care.pBored())) { W[Seqs.SEEK_ATTENTION] += 10f; W[Seqs.FLAP_HAPPY] *= .5f; W[Seqs.JUMP_PLAY] *= .5f; }
         // do not repeat the same thing, respect cool-downs
@@ -368,8 +385,10 @@ final class Brain {
     void wakeForUser(boolean greeting) {
         if (offscreenState()) { pendingSeq = greeting ? Seqs.R_GREET : Seqs.R_WAKE; return; }
         if (sleeping() || state == State.SLEEPY || state == State.NOD_OFF) start(Seqs.R_WAKE_GREET);
-        else if (greeting) start(Seqs.R_GREET);
+        else if (greeting) start(greetSeq());
     }
+    /** Greetings get fancier as the penguin grows attached (なつき度). */
+    int greetSeq() { final int lv = care == null ? 1 : care.bondLevel(); return lv >= 4 ? Seqs.R_GREET_TOP : lv >= 3 ? Seqs.R_GREET_BIG : Seqs.R_GREET; }
 
     String debugName() { return seqId >= 0 ? Seqs.NAMES[seqId] + "/" + state : "IDLE"; }
 }

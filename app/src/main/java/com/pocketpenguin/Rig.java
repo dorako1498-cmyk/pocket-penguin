@@ -20,7 +20,7 @@ final class Rig {
     static final float GROUND = 778f, SHOULDER_Y = 462f, SHOULDER_LX = 172f, SHOULDER_RX = 468f, NECK_Y = 470f;
     static final float JUMP_PREP = .26f, JUMP_AIR = .56f, BIG_PREP = .32f, BIG_AIR = .80f, FALL_IMPACT = .28f;
 
-    static final int EV_LAND = 1, EV_IMPACT = 2, EV_TAKEOFF = 4, EV_SWEAT = 8, EV_EXCL = 16;
+    static final int EV_LAND = 1, EV_IMPACT = 2, EV_TAKEOFF = 4, EV_SWEAT = 8, EV_EXCL = 16, EV_SNEEZE = 32;
 
     /** Per-frame input from the behaviour layer. */
     static final class In {
@@ -57,6 +57,9 @@ final class Rig {
     Expr expr = Expr.NORMAL;
     int events;
     boolean boots;                   // rainy day: yellow rain boots over the feet
+    int costume;                     // seasonal: 0 none, 1 muffler (winter), 2 straw hat (summer), 3 pumpkin hat (Halloween), 4 Santa hat (Christmas)
+    static final int C_NONE = 0, C_MUFFLER = 1, C_STRAW = 2, C_PUMPKIN = 3, C_SANTA = 4;
+    private final Path hatPath = new Path();
 
     private final Tg T = new Tg();
     private final Random rnd = new Random();
@@ -425,6 +428,32 @@ final class Rig {
             case BRUSH: {                     // brushing teeth: one wing up at the beak scrubbing, foam (the brush itself is drawn by the engine)
                 final float sc = sin(t * 16f);
                 T.wr = 105f + 10f * sc; T.wl = 6f; T.hrot += 3f * sc; T.mouth = .28f; T.expr = Expr.HAPPY; T.cheek = 1.1f; T.by -= abs(sc) * 2f; break; }
+            case WINK: {
+                e = pulse(t, 0f, .15f, dur - .25f, dur);
+                T.expr = Expr.WINK; T.cheek = 1.3f; T.hrot += -d * 8f * e; T.wr = 40f * e; T.mouth = .1f * e; T.turn = d * .2f; break; }
+            case SMUG: {                      // ドヤ顔: chest out, chin up, wings on hips
+                e = pulse(t, 0f, .25f, dur - .3f, dur);
+                T.expr = Expr.SMUG; T.browL = T.browR = .6f * e; T.lid = .42f * e; T.cheek = 1.1f;
+                T.sy += .04f * e; T.sx += .03f * e; T.hy -= 8f * e; T.hrot += d * 5f * e; wings(-34f * e); T.lookY = -.3f * e; T.turn = d * .3f; break; }
+            case SNEEZE: {                    // "は…は…くしゅんっ!"
+                final float build = seg(t, 0f, .9f), hit = pulse(t, .95f, 1.0f, 1.15f, 1.6f);
+                T.expr = t < .95f ? Expr.SLEEPY : Expr.DAZE; T.lid = .5f * build;
+                T.hy -= 10f * build - 28f * hit; T.hrot += -d * 8f * build + d * 18f * hit; T.mouth = .35f * build * (1f - hit);
+                T.sy += .04f * build - .1f * hit; wings(20f * hit); T.by += 6f * hit;
+                if (cross(State.SNEEZE, t, .97f)) events |= EV_SNEEZE;
+                break; }
+            case HANDSTAND: {                 // a wobbly handstand (bond level 3+)
+                final float k = seg(t, 0f, .5f) * (1f - seg(t, dur - .5f, dur));
+                T.rot = 180f * k * d; T.by = -690f * k; T.expr = k > .6f ? Expr.EXCITED : Expr.CURIOUS; wings(150f * k);
+                T.rot += 6f * sin(t * 5f) * k; T.fyl = -20f * sin(t * 6f) * k; T.fyr = 20f * sin(t * 6f) * k; T.mouth = .2f * k; break; }
+            case FLIP: {                      // somersault (bond level 4+)
+                final float prep = .3f, air = .8f;
+                if (t < prep) { final float k = seg(t, 0f, prep); T.sy = 1f - .22f * k; T.sx = 1f + .14f * k; wings(-14f * k); T.expr = Expr.EXCITED; }
+                else if (t < prep + air) {
+                    final float s = (t - prep) / air; T.by = -330f * 4f * s * (1f - s); T.rot = 360f * sm(s) * d; wings(70f); T.expr = Expr.EXCITED; T.mouth = .4f;
+                    if (cross(State.FLIP, t, prep + air)) events |= EV_LAND;
+                } else { final float u2 = t - prep - air, k = pulse(u2, 0f, .05f, .12f, .35f); T.sy = 1f - .24f * k; T.sx = 1f + .16f * k; T.expr = Expr.VERY_HAPPY; T.cheek = 1.3f; wings(30f * (1f - seg(u2, 0f, .4f))); }
+                break; }
             default: break;
         }
 
@@ -547,17 +576,50 @@ final class Rig {
         c.save(); c.rotate(-wr.p, SHOULDER_RX, SHOULDER_Y);
         part(c, a.wingR, PartLayout.PG_WING_R_L, PartLayout.PG_WING_R_T); c.restore();
 
+        if (costume == C_MUFFLER) muffler(c, alpha);
         // head group: head art + eyes / cheeks / mouth / beak
         c.save();
         c.translate(hx.p, hy.p);
         c.rotate(hrot.p, 320f, NECK_Y);
         part(c, a.head, PartLayout.PG_HEAD_L, PartLayout.PG_HEAD_T);
         drawFace(c, a, alpha);
+        if (costume >= C_STRAW) hat(c, alpha);
         c.restore();
 
         c.restore();   // body group
         bm.setAlpha(255);
         c.restore();
+    }
+
+    /** Red knitted muffler around the neck with one end hanging down. */
+    private void muffler(Canvas c, int alpha) {
+        mouthP.setAlpha(alpha);
+        mouthP.setColor(0xFFE0474C); rf.set(150f, 430f, 490f, 512f); c.drawRoundRect(rf, 40f, 40f, mouthP);
+        rf.set(370f, 470f, 432f, 640f); c.drawRoundRect(rf, 22f, 22f, mouthP);                          // hanging end
+        mouthP.setColor(0xFFFFFFFF); for (int i = 0; i < 4; i++) { rf.set(196f + i * 72f, 462f, 232f + i * 72f, 476f); c.drawRoundRect(rf, 7f, 7f, mouthP); }
+        rf.set(380f, 590f, 422f, 602f); c.drawRoundRect(rf, 6f, 6f, mouthP);
+        mouthP.setColor(0xFFB8333A); for (int i = 0; i < 5; i++) c.drawRect(374f + i * 12f, 636f, 380f + i * 12f, 664f, mouthP);   // fringe
+        mouthP.setColor(0xFF6B2B30);
+    }
+    /** Seasonal hats (drawn on the head, so they move with it). */
+    private void hat(Canvas c, int alpha) {
+        mouthP.setAlpha(alpha);
+        if (costume == C_STRAW) {
+            mouthP.setColor(0xFFE9C46A); rf.set(110f, 74f, 530f, 150f); c.drawOval(rf, mouthP);              // brim
+            mouthP.setColor(0xFFF2D488); rf.set(200f, 10f, 440f, 122f); c.drawRoundRect(rf, 70f, 70f, mouthP);   // crown
+            mouthP.setColor(0xFFE0565B); c.drawRect(204f, 82f, 436f, 108f, mouthP);                                // ribbon
+        } else if (costume == C_PUMPKIN) {
+            mouthP.setColor(0xFFF28C28); rf.set(170f, 20f, 470f, 150f); c.drawOval(rf, mouthP);
+            mouthP.setColor(0xFFD9741A); rf.set(250f, 20f, 390f, 150f); c.drawOval(rf, mouthP);
+            mouthP.setColor(0xFFF5A040); rf.set(290f, 22f, 350f, 148f); c.drawOval(rf, mouthP);
+            mouthP.setColor(0xFF4F8A3B); rf.set(306f, -14f, 334f, 34f); c.drawRoundRect(rf, 10f, 10f, mouthP);   // stem
+        } else {   // Santa
+            hatPath.reset(); hatPath.moveTo(150f, 120f); hatPath.quadTo(300f, -40f, 520f, 10f); hatPath.lineTo(490f, 120f); hatPath.close();
+            mouthP.setColor(0xFFE0353B); c.drawPath(hatPath, mouthP);
+            mouthP.setColor(0xFFFFFFFF); rf.set(130f, 96f, 510f, 150f); c.drawRoundRect(rf, 27f, 27f, mouthP);
+            c.drawCircle(522f, 14f, 30f, mouthP);
+        }
+        mouthP.setColor(0xFF6B2B30);
     }
 
     private void boot(Canvas c, float cx, float cy, int alpha) {
@@ -596,6 +658,11 @@ final class Rig {
             rf.set(mx - (14f + 22f * m), my - 4f, mx + (14f + 22f * m), my + 6f + 28f * m); c.drawOval(rf, mouthP);
             rf.set(mx - 10f - 8f * m, my + 10f + 14f * m, mx + 10f + 8f * m, my + 4f + 28f * m); c.drawOval(rf, tongueP);
         }
+        else if (expr == Expr.SMUG) {                                // one-sided smirk
+            strokeP.setStrokeWidth(7f); strokeP.setAlpha(alpha);
+            final float mx = 320f + beakShift;
+            rf.set(mx - 4f, 396f, mx + 34f, 422f); c.drawArc(rf, 20f, 120f, false, strokeP);
+        }
         else if (expr == Expr.ANGRY || expr == Expr.SAD) {          // small frown under the beak
             strokeP.setStrokeWidth(7f); strokeP.setAlpha(alpha);
             final float mx = 320f + beakShift;
@@ -615,6 +682,12 @@ final class Rig {
 
         if (ex == Expr.HAPPY || ex == Expr.VERY_HAPPY) {
             strokeP.setStrokeWidth(ex == Expr.VERY_HAPPY ? 12f : 10f);
+            rf.set(cx - 25f, cy - 14f, cx + 25f, cy + 16f);
+            c.drawArc(rf, 180f, 180f, false, strokeP);
+            return;
+        }
+        if (ex == Expr.WINK && side > 0) {                 // one eye shut in a happy arc
+            strokeP.setStrokeWidth(10f);
             rf.set(cx - 25f, cy - 14f, cx + 25f, cy + 16f);
             c.drawArc(rf, 180f, 180f, false, strokeP);
             return;

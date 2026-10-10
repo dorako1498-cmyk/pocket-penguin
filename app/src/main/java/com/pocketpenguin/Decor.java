@@ -23,6 +23,10 @@ final class Decor {
     boolean treatOn; float treatX, treatH, treatHv, treatAge;
     // ---- birthday cake (v0.12)
     boolean cake;
+    // ---- v0.13: souvenirs from outings (on the window sill) and a snowman on snowy days
+    static final String SOUV = "slpafogt";   // shell, leaf, pebble, acorn, feather, flower, sea glass, star
+    static final String[] SOUV_NAMES = { "かいがら", "はっぱ", "まるい小石", "どんぐり", "はね", "おはな", "シーグラス", "おほしさま" };
+    float snowman;                            // 0 none .. 1 finished
     private final Paint p = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF rf = new RectF(); private final Path path = new Path();
 
@@ -122,6 +126,52 @@ final class Decor {
         if (has(FISH)) fish(c, w * .27f, back);
         if (has(PUMPKIN)) pumpkin(c, w * .72f, back, night);
         if (has(TREE)) tree(c, w * .72f, back);
+        souvenirs(c);
+        if (snowman > .01f) snowman(c, w * .2f, room.groundY + h * .012f, snowman);
+    }
+
+    /** Souvenirs stand on the window sill, the newest on the right (at most 8 shown). */
+    private void souvenirs(Canvas c) {
+        final String sv = care.souv; if (sv.isEmpty()) return;
+        final int n = Math.min(8, sv.length());
+        final float y = room.winB + w * .012f, step = w * .038f, x0 = room.winL + w * .02f;
+        for (int i = 0; i < n; i++) item(c, sv.charAt(sv.length() - n + i), x0 + i * step, y, w * .014f);
+    }
+    /** One souvenir, standing on the line y (s = size). */
+    void item(Canvas c, char k, float x, float y, float s) {
+        switch (k) {
+            case 's': path.reset(); path.moveTo(x - s, y); path.quadTo(x, y - s * 2.2f, x + s, y); path.close(); p.setColor(0xFFFFC2C7); c.drawPath(path, p);
+                p.setColor(0xFFF39AA4); for (int i = -1; i <= 1; i++) c.drawLine(x, y - s * .2f, x + i * s * .6f, y - s * 1.2f, p); break;
+            case 'l': c.save(); c.rotate(-30f, x, y); oval(c, x - s * .5f, y - s * 2f, x + s * .5f, y, 0xFF7BC47F); p.setColor(0xFF4F9E5C); c.drawRect(x - s * .05f, y - s * 1.8f, x + s * .05f, y, p); c.restore(); break;
+            case 'p': oval(c, x - s, y - s * 1.1f, x + s, y, 0xFFA8ADB5); oval(c, x - s * .5f, y - s * .9f, x, y - s * .55f, 0x66FFFFFF); break;
+            case 'a': oval(c, x - s * .7f, y - s * 1.5f, x + s * .7f, y, 0xFFB57A45); rr(c, x - s * .8f, y - s * 1.8f, x + s * .8f, y - s * 1.1f, s * .3f, 0xFF7A5232); break;
+            case 'f': c.save(); c.rotate(20f, x, y); oval(c, x - s * .35f, y - s * 2.4f, x + s * .35f, y, 0xFFF4F1EA); p.setColor(0xFFB0A898); c.drawRect(x - s * .04f, y - s * 2.3f, x + s * .04f, y, p); c.restore(); break;
+            case 'o': p.setColor(0xFF6FBF73); c.drawRect(x - s * .07f, y - s * 1.6f, x + s * .07f, y, p);
+                p.setColor(0xFFFF9EC4); for (int i = 0; i < 5; i++) { final double a = i * Math.PI * .4; c.drawCircle(x + (float) Math.cos(a) * s * .45f, y - s * 1.8f + (float) Math.sin(a) * s * .45f, s * .38f, p); }
+                p.setColor(0xFFFFE07A); c.drawCircle(x, y - s * 1.8f, s * .3f, p); break;
+            case 'g': rr(c, x - s * .8f, y - s * 1.2f, x + s * .8f, y, s * .4f, 0xCC7FD3D8); oval(c, x - s * .5f, y - s * 1f, x - s * .1f, y - s * .7f, 0x88FFFFFF); break;
+            default: path.reset();
+                for (int i = 0; i < 10; i++) { final double a = -Math.PI / 2 + i * Math.PI / 5; final float r = (i % 2 == 0) ? s : s * .45f; final float px = x + (float) Math.cos(a) * r, py = y - s + (float) Math.sin(a) * r; if (i == 0) path.moveTo(px, py); else path.lineTo(px, py); }
+                path.close(); p.setColor(0xFFFFD84D); c.drawPath(path, p); break;
+        }
+    }
+
+    /** Snowman (k = how far it is built). */
+    private void snowman(Canvas c, float x, float base, float k) {
+        final float r1 = w * .045f * Math.min(1f, k * 2f), r2 = w * .032f * Math.max(0f, Math.min(1f, k * 2f - .6f));
+        oval(c, x - r1 * 1.2f, base - h * .004f, x + r1 * 1.2f, base + h * .008f, 0x26000000);
+        p.setColor(0xFFFFFFFF); c.drawCircle(x, base - r1, r1, p);
+        p.setColor(0x22000000); c.drawCircle(x + r1 * .25f, base - r1 * .8f, r1 * .85f, p); p.setColor(0xFFFFFFFF); c.drawCircle(x - r1 * .05f, base - r1 * 1.05f, r1 * .85f, p);
+        if (r2 > 1f) {
+            final float hy = base - r1 * 1.85f - r2;
+            p.setColor(0xFFFFFFFF); c.drawCircle(x, hy, r2, p);
+            if (k > .9f) {
+                p.setColor(0xFF2B2F38); c.drawCircle(x - r2 * .35f, hy - r2 * .15f, r2 * .1f, p); c.drawCircle(x + r2 * .35f, hy - r2 * .15f, r2 * .1f, p);
+                path.reset(); path.moveTo(x, hy + r2 * .05f); path.lineTo(x + r2 * .7f, hy + r2 * .2f); path.lineTo(x, hy + r2 * .3f); path.close(); p.setColor(0xFFF28C28); c.drawPath(path, p);
+                rr(c, x - r2 * .9f, hy + r2 * .6f, x + r2 * .9f, hy + r2 * .95f, r2 * .2f, 0xFFE0474C);   // scarf
+                rr(c, x - r2 * .6f, hy - r2 * 1.5f, x + r2 * .6f, hy - r2 * .8f, r2 * .1f, 0xFF3A3D45); rr(c, x - r2 * .9f, hy - r2 * .9f, x + r2 * .9f, hy - r2 * .75f, r2 * .07f, 0xFF3A3D45);   // hat
+            }
+        }
     }
 
     private void oval(Canvas c, float l, float t, float r, float b, int col) { p.setColor(col); rf.set(l, t, r, b); c.drawOval(rf, p); }
